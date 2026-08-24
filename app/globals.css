@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Tiptap-Editor: einfache Standardformatierung für Überschriften/Absätze */
+.letter-editor {
+  outline: none;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.letter-editor h2 {
+  font-size: 1.2em;
+  font-weight: 700;
+  margin: 0 0 0.3em 0;
+}
+.letter-editor h3 {
+  font-size: 1.05em;
+  font-weight: 600;
+  margin: 0 0 0.6em 0;
+}
+.letter-editor p {
+  margin: 0 0 0.7em 0;
+}
+.letter-editor ul {
+  margin: 0 0 0.7em 1.2em;
+  list-style: disc;
+}

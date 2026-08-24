@@ -1,0 +1,190 @@
+"use client";
+
+import { useState } from "react";
+import StepLetterhead from "./StepLetterhead";
+import StepText from "./StepText";
+import StepPhoto from "./StepPhoto";
+import StepAddresses from "./StepAddresses";
+import { applyMapping } from "@/lib/csv/parseAddresses";
+import { initialWizardState, type WizardState } from "./wizardTypes";
+
+const STEPS = [
+  { id: 1, label: "Briefbogen" },
+  { id: 2, label: "Anschreiben" },
+  { id: 3, label: "Headerfoto" },
+  { id: 4, label: "Adressliste" },
+] as const;
+
+function buildFormData(state: WizardState): FormData {
+  const fd = new FormData();
+  fd.set("letterheadMode", state.letterheadMode);
+  if (state.letterheadMode === "image" && state.letterheadFile) {
+    fd.set("letterheadFile", state.letterheadFile);
+  }
+  if (state.letterheadMode === "logo") {
+    if (state.logoFile) fd.set("logoFile", state.logoFile);
+    fd.set("logoPosition", state.logoPosition);
+  }
+
+  fd.set("bodyHtml", state.bodyHtml);
+  fd.set("page2Html", state.page2Html);
+  fd.set("fontId", state.fontId);
+  fd.set("fontSizePt", String(state.fontSizePt));
+
+  fd.set("photoMode", state.photoMode);
+  if (state.photoMode === "upload" && state.photoFile) fd.set("photoFile", state.photoFile);
+  if (state.photoMode === "stock") fd.set("stockPhotoId", state.stockPhotoId);
+
+  if (state.csvFile) fd.set("csvFile", state.csvFile);
+  fd.set("mapping", JSON.stringify(state.mapping));
+
+  return fd;
+}
+
+export default function Wizard() {
+  const [step, setStep] = useState(1);
+  const [state, setState] = useState<WizardState>(initialWizardState);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<number | null>(null);
+
+  function update(patch: Partial<WizardState>) {
+    setState((s) => ({ ...s, ...patch }));
+  }
+
+  function validate(): string | null {
+    if (state.letterheadMode === "image" && !state.letterheadFile) {
+      setStep(1);
+      return "Bitte einen Briefbogen hochladen (Schritt 1).";
+    }
+    if (state.letterheadMode === "logo" && !state.logoFile) {
+      setStep(1);
+      return "Bitte ein Logo hochladen (Schritt 1).";
+    }
+    if (!state.bodyHtml || state.bodyHtml.replace(/<[^>]+>/g, "").trim() === "") {
+      setStep(2);
+      return "Bitte einen Anschreibentext eingeben (Schritt 2).";
+    }
+    if (state.photoMode === "upload" && !state.photoFile) {
+      setStep(3);
+      return "Bitte ein Headerfoto hochladen (Schritt 3).";
+    }
+    if (!state.csvFile || state.csvRows.length === 0) {
+      setStep(4);
+      return "Bitte eine Adressliste hochladen (Schritt 4).";
+    }
+    try {
+      applyMapping(state.csvRows, state.mapping);
+    } catch (e) {
+      setStep(4);
+      return e instanceof Error ? e.message : "Spalten-Zuordnung unvollständig (Schritt 4).";
+    }
+    return null;
+  }
+
+  async function handleSubmit() {
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    setDone(null);
+    try {
+      const res = await fetch("/api/generate", { method: "POST", body: buildFormData(state) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error ?? `Fehler beim Erstellen (Status ${res.status}).`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Serienbriefe.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setDone(state.csvRows.length);
+    } catch {
+      setError("Netzwerkfehler beim Erstellen der PDF. Bitte erneut versuchen.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 py-8">
+      <h1 className="mb-6 text-2xl font-semibold">Serienbrief-Generator</h1>
+
+      <div className="mb-6 flex gap-2">
+        {STEPS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setStep(s.id)}
+            className={`flex-1 rounded-lg border px-3 py-2 text-center text-sm ${
+              step === s.id
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            {s.id}. {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        {step === 1 && <StepLetterhead state={state} update={update} />}
+        {step === 2 && <StepText state={state} update={update} />}
+        {step === 3 && <StepPhoto state={state} update={update} />}
+        {step === 4 && <StepAddresses state={state} update={update} />}
+      </div>
+
+      {error && (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+      {done !== null && (
+        <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          Fertig! Die PDF mit {done} Empfänger{done === 1 ? "" : "n"} (à 2 Seiten) wurde
+          heruntergeladen.
+        </div>
+      )}
+
+      <div className="mt-6 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setStep((s) => Math.max(1, s - 1))}
+          disabled={step === 1}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm disabled:opacity-40"
+        >
+          Zurück
+        </button>
+
+        {step < STEPS.length ? (
+          <button
+            type="button"
+            onClick={() => setStep((s) => Math.min(STEPS.length, s + 1))}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+          >
+            Weiter
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {submitting ? "Erstelle PDF…" : "Serienbriefe erstellen"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 680" width="1600" height="680">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3b2a5e"/>
+      <stop offset="100%" stop-color="#6a4bb0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="680" fill="url(#bg4)"/>
+  <g opacity="0.15" fill="#ffffff">
+    <circle cx="1500" cy="100" r="200"/>
+    <circle cx="80" cy="620" r="220"/>
+  </g>
+  <!-- zwei Personen im Gespräch -->
+  <g fill="#f4ecff">
+    <circle cx="620" cy="330" r="60"/>
+    <path d="M480,560 q140,-130 280,0 z"/>
+  </g>
+  <g fill="#ffd98a">
+    <circle cx="960" cy="300" r="60"/>
+    <path d="M820,560 q140,-150 280,0 z"/>
+  </g>
+  <!-- Sprechblase -->
+  <g fill="#ffffff" opacity="0.92">
+    <rect x="720" y="150" width="220" height="110" rx="24"/>
+    <path d="M760,258 l-20,40 40,-24 z"/>
+  </g>
+  <g fill="#6a4bb0">
+    <circle cx="780" cy="205" r="10"/>
+    <circle cx="825" cy="205" r="10"/>
+    <circle cx="870" cy="205" r="10"/>
+  </g>
+</svg>

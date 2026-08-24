@@ -1,0 +1,139 @@
+"use client";
+
+import { useState } from "react";
+import { compressImageFile } from "@/lib/clientImage";
+import type { LogoPosition, StepProps } from "./wizardTypes";
+
+const POSITIONS: { id: LogoPosition; label: string }[] = [
+  { id: "left", label: "Oben links" },
+  { id: "center", label: "Oben mittig" },
+  { id: "right", label: "Oben rechts" },
+];
+
+export default function StepLetterhead({ state, update }: StepProps) {
+  const [preview, setPreview] = useState<string | null>(null);
+
+  async function handleLetterheadFile(file: File | null) {
+    if (!file) {
+      update({ letterheadFile: null });
+      return;
+    }
+    const processed = file.type === "application/pdf" ? file : await compressImageFile(file);
+    update({ letterheadFile: processed });
+    if (processed.type.startsWith("image/")) {
+      setPreview(URL.createObjectURL(processed));
+    } else {
+      setPreview(null);
+    }
+  }
+
+  async function handleLogoFile(file: File | null) {
+    if (!file) {
+      update({ logoFile: null });
+      return;
+    }
+    const processed = await compressImageFile(file);
+    update({ logoFile: processed });
+    setPreview(URL.createObjectURL(processed));
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="mb-1 text-lg font-semibold">Firmen-Briefbogen</h2>
+        <p className="text-sm text-slate-500">
+          Lade den Briefbogen deines Kunden hoch, oder nutze stattdessen nur ein Logo, falls kein
+          fertiger Briefbogen vorliegt.
+        </p>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => update({ letterheadMode: "image" })}
+          className={`flex-1 rounded-lg border p-3 text-left text-sm ${
+            state.letterheadMode === "image" ? "border-slate-900 bg-slate-900/5" : "border-slate-300"
+          }`}
+        >
+          <div className="font-medium">Briefbogen hochladen</div>
+          <div className="text-slate-500">PDF, PNG, JPEG oder WebP</div>
+        </button>
+        <button
+          type="button"
+          onClick={() => update({ letterheadMode: "logo" })}
+          className={`flex-1 rounded-lg border p-3 text-left text-sm ${
+            state.letterheadMode === "logo" ? "border-slate-900 bg-slate-900/5" : "border-slate-300"
+          }`}
+        >
+          <div className="font-medium">Kein Briefbogen — nur Logo</div>
+          <div className="text-slate-500">Logo hochladen und Position wählen</div>
+        </button>
+      </div>
+
+      {state.letterheadMode === "image" && (
+        <div className="space-y-2">
+          <input
+            type="file"
+            accept="application/pdf,image/png,image/jpeg,image/webp"
+            onChange={(e) => handleLetterheadFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm"
+          />
+          <p className="text-xs text-slate-500">
+            Word-Datei (.docx)? Bitte in Word einmal über „Datei &gt; Speichern unter &gt; PDF“
+            exportieren und die PDF hier hochladen.
+          </p>
+          {state.letterheadFile && (
+            <p className="text-sm text-slate-700">
+              Ausgewählt: <span className="font-medium">{state.letterheadFile.name}</span>
+            </p>
+          )}
+          {preview && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt="Vorschau Briefbogen" className="max-h-64 rounded border border-slate-200" />
+          )}
+        </div>
+      )}
+
+      {state.letterheadMode === "logo" && (
+        <div className="space-y-4">
+          <div>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(e) => handleLogoFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-sm"
+            />
+            {state.logoFile && (
+              <p className="mt-1 text-sm text-slate-700">
+                Ausgewählt: <span className="font-medium">{state.logoFile.name}</span>
+              </p>
+            )}
+            {preview && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="Vorschau Logo" className="mt-2 max-h-32 rounded border border-slate-200 bg-white p-2" />
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Position auf Seite 1</label>
+            <div className="flex gap-2">
+              {POSITIONS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => update({ logoPosition: p.id })}
+                  className={`rounded-lg border px-3 py-1.5 text-sm ${
+                    state.logoPosition === p.id
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-300 bg-white hover:bg-slate-100"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
