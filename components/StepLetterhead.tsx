@@ -134,6 +134,33 @@ export default function StepLetterhead({ state, update }: StepProps) {
           </div>
         </div>
       )}
+
+      <div className="border-t border-slate-200 pt-6">
+        <h3 className="mb-1 text-sm font-semibold">Design-Farbe</h3>
+        <p className="mb-2 text-xs text-slate-500">
+          Wird für die Überschrift auf Seite 1 sowie Nummerierungen, Striche und Linien auf Seite 2
+          verwendet.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={/^#[0-9a-fA-F]{6}$/.test(state.designColor) ? state.designColor : "#000000"}
+            onChange={(e) => update({ designColor: e.target.value.toUpperCase() })}
+            className="h-9 w-14 cursor-pointer rounded border border-slate-300"
+          />
+          <input
+            type="text"
+            value={state.designColor}
+            onChange={(e) => update({ designColor: e.target.value })}
+            placeholder="#000000"
+            maxLength={7}
+            className="w-32 rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"
+          />
+          {!/^#[0-9a-fA-F]{6}$/.test(state.designColor) && (
+            <span className="text-xs text-red-600">Bitte gültigen Hex-Wert angeben, z.B. #1E6FA6</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

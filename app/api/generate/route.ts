@@ -3,10 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { applyMapping, parseCsv, type AnredezeileConfig, type ColumnMapping } from "@/lib/csv/parseAddresses";
 import { buildFontFaceCss } from "@/lib/fonts";
-import { buildFullHtml, type LetterheadConfig } from "@/lib/pdf/buildHtml";
+import { buildFullHtml, type DuSieMode, type LetterheadConfig } from "@/lib/pdf/buildHtml";
 import { renderFirstPdfPageToPng } from "@/lib/pdf/letterheadToImage";
 import { renderHtmlToPdf } from "@/lib/pdf/render";
-import { DEFAULT_PAGE2_TEXT } from "@/lib/templates/standardTexts";
+import { generateQrDataUrl } from "@/lib/qr";
 import { STOCK_PHOTOS } from "@/lib/stockPhotos";
 
 export const runtime = "nodejs";
@@ -14,6 +14,7 @@ export const maxDuration = 60;
 
 const MAX_RECIPIENTS = 300;
 const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 function err(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -86,10 +87,10 @@ async function resolvePage2Photo(form: FormData): Promise<string | { error: stri
     const id = String(form.get("stockPhotoId") ?? "");
     const found = STOCK_PHOTOS.find((p) => p.id === id);
     if (!found) return { error: "Ungültiges Standardmotiv." };
-    const filePath = path.join(process.cwd(), "public", "stock-photos", `${id}.svg`);
-    const svg = fs.readFileSync(filePath, "utf-8");
-    const base64 = Buffer.from(svg, "utf-8").toString("base64");
-    return `data:image/svg+xml;base64,${base64}`;
+    const filePath = path.join(process.cwd(), "public", "stock-photos", `${id}.${found.ext}`);
+    const buf = fs.readFileSync(filePath);
+    const mime = found.ext === "jpg" ? "image/jpeg" : "image/png";
+    return `data:${mime};base64,${buf.toString("base64")}`;
   }
   return { error: "Ungültiger Foto-Modus." };
 }
@@ -120,8 +121,24 @@ export async function POST(req: Request) {
   }
   const bodyHtml = bodyHtmlRaw;
 
-  const page2HtmlRaw = form.get("page2Html");
-  const page2Html = typeof page2HtmlRaw === "string" && page2HtmlRaw.trim() !== "" ? page2HtmlRaw : DEFAULT_PAGE2_TEXT;
+  const designColor = String(form.get("designColor") ?? "");
+  if (!HEX_COLOR_RE.test(designColor)) {
+    return err("Bitte eine gültige Design-Farbe als Hex-Wert angeben (z.B. #1E6FA6).");
+  }
+
+  const showHeadline = form.get("showHeadline") === "true";
+  const headlineText = String(form.get("headlineText") ?? "");
+  if (showHeadline && headlineText.trim() === "") {
+    return err("Bitte einen Text für die Überschrift eingeben oder sie deaktivieren.");
+  }
+
+  const duSieModeRaw = form.get("duSieMode");
+  const duSieMode: DuSieMode = duSieModeRaw === "du" ? "du" : "sie";
+
+  const beratungslinkUrl = String(form.get("beratungslinkUrl") ?? "");
+  if (!beratungslinkUrl.startsWith("https://") || beratungslinkUrl.trim() === "https://") {
+    return err("Bitte die vollständige Beratungslink-URL angeben (beginnend mit https://).");
+  }
 
   const fontId = String(form.get("fontId") ?? "carlito");
   const fontSizePt = Number(form.get("fontSizePt") ?? 11) || 11;
@@ -168,14 +185,27 @@ export async function POST(req: Request) {
 
   const fontFaceCss = buildFontFaceCss((relPath) => readPublicFile(relPath));
 
+  let qrCodeDataUrl: string;
+  try {
+    qrCodeDataUrl = await generateQrDataUrl(beratungslinkUrl, designColor);
+  } catch (e) {
+    console.error("QR-Code-Erzeugung fehlgeschlagen:", e);
+    return err("Der QR-Code konnte nicht erzeugt werden. Bitte die Beratungslink-URL prüfen.", 500);
+  }
+
   const html = buildFullHtml(
     {
       fontId,
       fontSizePt,
+      designColor,
       bodyHtml,
-      page2Html,
+      showHeadline,
+      headlineText,
       letterhead,
       page2PhotoDataUrl,
+      duSieMode,
+      beratungslinkUrl,
+      qrCodeDataUrl,
     },
     recipients,
     fontFaceCss

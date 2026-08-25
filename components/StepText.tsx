@@ -26,7 +26,15 @@ export default function StepText({ state, update }: StepProps) {
             <button
               key={t.id}
               type="button"
-              onClick={() => update({ bodyHtml: getStandardText(t.id).bodyHtml })}
+              onClick={() => {
+                const std = getStandardText(t.id);
+                update({
+                  bodyHtml: std.bodyHtml,
+                  duSieMode: std.duSie,
+                  showHeadline: std.defaultHeadline !== "",
+                  headlineText: std.defaultHeadline,
+                });
+              }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-100"
             >
               {t.label}
@@ -52,14 +60,63 @@ export default function StepText({ state, update }: StepProps) {
         />
       </div>
 
+      <div className="rounded-lg border border-slate-200 p-4">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={state.showHeadline}
+            onChange={(e) => update({ showHeadline: e.target.checked })}
+            className="h-4 w-4"
+          />
+          Überschrift über der Anredezeile anzeigen
+        </label>
+        <p className="mb-2 mt-1 text-xs text-slate-500">
+          Fett, etwas größer als der Fließtext, in der Design-Farbe (Schritt 1). Mehrzeilig möglich
+          — z.B. „Warum Geld verschenken?“ + „Sparen Sie Steuern und Sozialabgaben mit unserer
+          Hilfe!“.
+        </p>
+        {state.showHeadline && (
+          <textarea
+            value={state.headlineText}
+            onChange={(e) => update({ headlineText: e.target.value })}
+            rows={2}
+            placeholder={"Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!"}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+        )}
+      </div>
+
       <div>
-        <label className="mb-1 block text-sm font-medium">Hinweistext unter dem Freischaltcode (Seite 2)</label>
-        <RichTextEditor
-          value={state.page2Html}
-          onChange={(html) => update({ page2Html: html })}
-          mergeFields={MERGE_FIELDS}
-          minHeight="120px"
-        />
+        <label className="mb-1 block text-sm font-medium">Du/Sie-Anrede</label>
+        <p className="mb-2 text-xs text-slate-500">
+          Wird für den Overlay-Text auf dem Headerbild von Seite 2 verwendet („In nur drei
+          Schritten in {state.duSieMode === "du" ? "deinen" : "Ihren"} sicheren Ruhestand“). Wird
+          beim Klick auf eine Standardvorlage automatisch passend gesetzt.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => update({ duSieMode: "sie" })}
+            className={`rounded-lg border px-3 py-1.5 text-sm ${
+              state.duSieMode === "sie"
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-300 bg-white hover:bg-slate-100"
+            }`}
+          >
+            Sie
+          </button>
+          <button
+            type="button"
+            onClick={() => update({ duSieMode: "du" })}
+            className={`rounded-lg border px-3 py-1.5 text-sm ${
+              state.duSieMode === "du"
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-300 bg-white hover:bg-slate-100"
+            }`}
+          >
+            Du
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

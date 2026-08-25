@@ -11,9 +11,11 @@ import { initialWizardState, type WizardState } from "./wizardTypes";
 const STEPS = [
   { id: 1, label: "Briefbogen" },
   { id: 2, label: "Anschreiben" },
-  { id: 3, label: "Headerfoto" },
+  { id: 3, label: "Seite 2" },
   { id: 4, label: "Adressliste" },
 ] as const;
+
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 function buildFormData(state: WizardState): FormData {
   const fd = new FormData();
@@ -26,14 +28,18 @@ function buildFormData(state: WizardState): FormData {
     fd.set("logoPosition", state.logoPosition);
   }
 
+  fd.set("designColor", state.designColor);
   fd.set("bodyHtml", state.bodyHtml);
-  fd.set("page2Html", state.page2Html);
+  fd.set("showHeadline", String(state.showHeadline));
+  fd.set("headlineText", state.headlineText);
+  fd.set("duSieMode", state.duSieMode);
   fd.set("fontId", state.fontId);
   fd.set("fontSizePt", String(state.fontSizePt));
 
   fd.set("photoMode", state.photoMode);
   if (state.photoMode === "upload" && state.photoFile) fd.set("photoFile", state.photoFile);
   if (state.photoMode === "stock") fd.set("stockPhotoId", state.stockPhotoId);
+  fd.set("beratungslinkUrl", state.beratungslinkUrl);
 
   if (state.csvFile) fd.set("csvFile", state.csvFile);
   fd.set("mapping", JSON.stringify(state.mapping));
@@ -62,13 +68,25 @@ export default function Wizard() {
       setStep(1);
       return "Bitte ein Logo hochladen (Schritt 1).";
     }
+    if (!HEX_COLOR_RE.test(state.designColor)) {
+      setStep(1);
+      return "Bitte eine gültige Design-Farbe als Hex-Wert angeben (Schritt 1).";
+    }
     if (!state.bodyHtml || state.bodyHtml.replace(/<[^>]+>/g, "").trim() === "") {
       setStep(2);
       return "Bitte einen Anschreibentext eingeben (Schritt 2).";
     }
+    if (state.showHeadline && state.headlineText.trim() === "") {
+      setStep(2);
+      return "Bitte einen Text für die Überschrift eingeben oder sie deaktivieren (Schritt 2).";
+    }
     if (state.photoMode === "upload" && !state.photoFile) {
       setStep(3);
       return "Bitte ein Headerfoto hochladen (Schritt 3).";
+    }
+    if (!state.beratungslinkUrl.startsWith("https://") || state.beratungslinkUrl.trim() === "https://") {
+      setStep(3);
+      return "Bitte die vollständige Beratungslink-URL angeben (Schritt 3).";
     }
     if (!state.csvFile || state.csvRows.length === 0) {
       setStep(4);

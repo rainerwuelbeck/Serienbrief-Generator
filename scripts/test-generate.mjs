@@ -36,14 +36,18 @@ async function run(mode) {
 
   fd.set(
     "bodyHtml",
-    "<h2>Warum Geld verschenken?</h2><p>{{Anredezeile}}</p><p>Das ist ein Testtext für {{Vorname}} {{Nachname}}.</p><p>Ihre Geschäftsführung</p>"
+    "<p>{{Anredezeile}}</p><p>Das ist ein Testtext für {{Vorname}} {{Nachname}}.</p><p>Ihre Geschäftsführung</p>"
   );
-  fd.set("page2Html", "<p>Ihr Freischaltcode: {{Freischaltcode}}</p>");
   fd.set("fontId", "carlito");
   fd.set("fontSizePt", "11");
+  fd.set("designColor", "#1E6FA6");
+  fd.set("showHeadline", "true");
+  fd.set("headlineText", "Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!");
+  fd.set("duSieMode", mode === "letterhead" ? "du" : "sie");
+  fd.set("beratungslinkUrl", "https://schwarz.unserebav.de");
 
   fd.set("photoMode", "stock");
-  fd.set("stockPhotoId", "3");
+  fd.set("stockPhotoId", mode === "letterhead" ? "1" : "3");
 
   fd.set(
     "csvFile",

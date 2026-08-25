@@ -13,6 +13,9 @@ export type StandardTextVariant = "j-du" | "j-sie" | "f-du" | "f-sie";
 export type StandardText = {
   id: StandardTextVariant;
   label: string;
+  duSie: "du" | "sie";
+  /** Vorbelegung für die optionale Überschrift über der Anredezeile (Schritt 2). */
+  defaultHeadline: string;
   bodyHtml: string;
 };
 
@@ -20,9 +23,9 @@ export const STANDARD_TEXTS: StandardText[] = [
   {
     id: "j-du",
     label: "Variante „J“ – Du-Anrede",
+    duSie: "du",
+    defaultHeadline: "Warum Geld verschenken?\nSpare Steuern und Sozialabgaben mit unserer Hilfe!",
     bodyHtml: `
-<h2>Warum Geld verschenken?</h2>
-<h3>Spare Steuern und Sozialabgaben mit unserer Hilfe!</h3>
 <p>{{Anredezeile}}</p>
 <p>hast du dir schon Gedanken über deine finanzielle Situation im Rentenalter gemacht? Vielleicht ist dir die betriebliche Altersversorgung (bAV) oder Betriebsrente ein Begriff. Aber wusstest du, dass du durch die bAV Geld, das sonst in Form von Steuer- und Sozialabgaben abfließen würde, für deine zukünftige Rente verwenden könntest? Und das Monat für Monat?</p>
 <p>Nutze die Chance, deine Zukunft zu sichern und gleichzeitig Steuern und Sozialabgaben zu sparen!</p>
@@ -37,9 +40,9 @@ export const STANDARD_TEXTS: StandardText[] = [
   {
     id: "j-sie",
     label: "Variante „J“ – Sie-Anrede",
+    duSie: "sie",
+    defaultHeadline: "Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!",
     bodyHtml: `
-<h2>Warum Geld verschenken?</h2>
-<h3>Sparen Sie Steuern und Sozialabgaben mit unserer Hilfe!</h3>
 <p>{{Anredezeile}}</p>
 <p>haben Sie sich schon Gedanken über Ihre finanzielle Situation im Rentenalter gemacht? Vielleicht ist Ihnen die betriebliche Altersversorgung (bAV) oder Betriebsrente ein Begriff. Aber wussten Sie, dass Sie durch die bAV Geld, das sonst in Form von Steuer- und Sozialabgaben abfließen würde, für Ihre zukünftige Rente verwenden könnten? Und das Monat für Monat?</p>
 <p>Nutzen Sie die Chance, Ihre Zukunft zu sichern und gleichzeitig Steuern und Sozialabgaben zu sparen!</p>
@@ -54,6 +57,8 @@ export const STANDARD_TEXTS: StandardText[] = [
   {
     id: "f-du",
     label: "Variante „F“ – Du-Anrede",
+    duSie: "du",
+    defaultHeadline: "",
     bodyHtml: `
 <p>{{Anredezeile}}</p>
 <p>wie du sicher weißt, sinkt das Niveau der gesetzlichen Rente stetig. Deshalb ist es unumstritten, dass zusätzliche private Vorsorgemaßnahmen für deine finanzielle Sicherheit im Ruhestand von großer Bedeutung sind.</p>
@@ -68,6 +73,8 @@ export const STANDARD_TEXTS: StandardText[] = [
   {
     id: "f-sie",
     label: "Variante „F“ – Sie-Anrede",
+    duSie: "sie",
+    defaultHeadline: "",
     bodyHtml: `
 <p>{{Anredezeile}}</p>
 <p>wie Sie sicher wissen, sinkt das Niveau der gesetzlichen Rente stetig. Deshalb ist es unumstritten, dass zusätzliche private Vorsorgemaßnahmen für Ihre finanzielle Sicherheit im Ruhestand von großer Bedeutung sind.</p>
@@ -84,8 +91,3 @@ export const STANDARD_TEXTS: StandardText[] = [
 export function getStandardText(id: StandardTextVariant): StandardText {
   return STANDARD_TEXTS.find((t) => t.id === id) ?? STANDARD_TEXTS[0];
 }
-
-/** Standard-Hinweistext für Seite 2 unterhalb der Freischaltcode-Box. */
-export const DEFAULT_PAGE2_TEXT = `
-<p>Nutzen Sie Ihren persönlichen Freischaltcode, um sich unverbindlich und kostenlos Ihre individuelle betriebliche Altersvorsorge berechnen zu lassen. Der Vorgang dauert nur wenige Minuten.</p>
-`.trim();

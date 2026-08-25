@@ -56,6 +56,10 @@ export default function StepPhoto({ state, update }: StepProps) {
             onChange={(e) => handlePhotoFile(e.target.files?.[0] ?? null)}
             className="block w-full text-sm"
           />
+          <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            Empfohlene Auflösung: mindestens <strong>1200 px breit</strong> (Seitenverhältnis ca.
+            2,7 : 1, z.B. 1600 × 600 px) für einen scharfen Druck über die volle Seitenbreite.
+          </p>
           {state.photoFile && (
             <p className="text-sm text-slate-700">
               Ausgewählt: <span className="font-medium">{state.photoFile.name}</span>
@@ -86,6 +90,23 @@ export default function StepPhoto({ state, update }: StepProps) {
           ))}
         </div>
       )}
+
+      <div className="border-t border-slate-200 pt-6">
+        <label className="mb-1 block text-sm font-medium">Beratungslink-URL</label>
+        <p className="mb-2 text-xs text-slate-500">
+          Wird auf Seite 2 als Link angezeigt und als QR-Code eingebettet.
+        </p>
+        <input
+          type="text"
+          value={state.beratungslinkUrl}
+          onChange={(e) => update({ beratungslinkUrl: e.target.value })}
+          placeholder="https://kunde.unserebav.de"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm sm:w-2/3"
+        />
+        {!state.beratungslinkUrl.startsWith("https://") || state.beratungslinkUrl === "https://" ? (
+          <p className="mt-1 text-xs text-amber-600">Bitte die vollständige URL nach „https://“ ergänzen.</p>
+        ) : null}
+      </div>
     </div>
   );
 }

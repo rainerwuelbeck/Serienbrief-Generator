@@ -18,24 +18,32 @@ Eine Test-Adressliste liegt unter `test-data/beispiel-adressen.csv`.
 
 ## Wie es funktioniert
 
-1. **Briefbogen/Logo** (Schritt 1) — PDF-Briefbögen werden serverseitig in ein Bild
-   umgewandelt (`lib/pdf/letterheadToImage.ts`) und als Hintergrund von Seite 1
-   verwendet. Ohne Briefbogen: weiße Seite + positioniertes Logo.
+1. **Briefbogen/Logo/Design-Farbe** (Schritt 1) — PDF-Briefbögen werden
+   serverseitig in ein Bild umgewandelt (`lib/pdf/letterheadToImage.ts`) und
+   als Hintergrund von Seite 1 verwendet. Ohne Briefbogen: weiße Seite +
+   positioniertes Logo. Die Design-Farbe (Hex) färbt die Überschrift auf
+   Seite 1 sowie Nummerierungen/Linien auf Seite 2.
 2. **Anschreiben** (Schritt 2) — vier Standardtexte (aus
    `Mitarbeiteranschreiben-Muster-4-Versionen.pdf`) als Ausgangspunkt, frei
    editierbar (Rich-Text, Schriftart/-größe), inkl. Seriendruck-Platzhaltern
-   (`{{Vorname}}`, `{{Nachname}}`, `{{Anredezeile}}`, `{{Freischaltcode}}`).
-3. **Headerfoto** (Schritt 3) — eigenes Bild oder eines von 5 Standardmotiven
-   (aktuell generische Platzhalter-Illustrationen unter `public/stock-photos/`,
-   bei Bedarf durch echte Motive ersetzen).
+   (`{{Vorname}}`, `{{Nachname}}`, `{{Anredezeile}}`, `{{Freischaltcode}}`),
+   optionaler fetter Überschrift über der Anredezeile, und Du/Sie-Umschalter
+   (steuert den Overlay-Text auf Seite 2).
+3. **Seite 2** (Schritt 3) — Headerbild (eigenes Foto oder eines von 5
+   Standardmotiven aus `public/stock-photos/`) mit halbtransparentem
+   Text-Overlay, plus die Beratungslink-URL (wird als Link und als QR-Code
+   eingebettet). Der Rest von Seite 2 (Anleitung, Freischaltcode-Box) folgt
+   fest dem Referenzdesign.
 4. **Adressliste** (Schritt 4) — CSV hochladen, Spalten den Pflichtfeldern
-   zuordnen (Vorname, Nachname, Briefanredezeile, Straße, PLZ/Ort,
-   Freischaltcode).
+   zuordnen (Vorname, Nachname, Straße, PLZ, Ort, Freischaltcode); die
+   Briefanredezeile kommt entweder aus einer eigenen CSV-Spalte oder wird
+   automatisch aus Vorname/Nachname nach einer von 4 Vorlagen generiert.
 
 Beim Klick auf „Serienbriefe erstellen“ baut `app/api/generate/route.ts` ein
 einziges großes HTML-Dokument (alle Empfänger × 2 Seiten) und rendert es per
 Puppeteer/Chromium in einem Rutsch zu einer kombinierten PDF-Datei, die direkt
-heruntergeladen wird.
+heruntergeladen wird. Der QR-Code wird einmalig pro Lauf serverseitig erzeugt
+(`lib/qr.ts`, Paket `qrcode`).
 
 ## Deployment auf Vercel
 
@@ -66,10 +74,10 @@ Umschalter nötig.
   Import, was Turbopack innerhalb einer Next.js-Route zur Laufzeit zum Absturz
   bringt ("Setting up fake worker failed"). Mit Webpack funktioniert es
   einwandfrei.
-- **Standardmotive** (Schritt 3): aktuell 5 generische Platzhalter-Grafiken,
-  keine echten Stockfotos — bei Bedarf `public/stock-photos/1.svg` … `5.svg`
-  durch echte Bilder ersetzen (gleicher Dateiname, anderes Format geht auch,
-  dann `lib/stockPhotos.ts` anpassen).
+- **Seite-2-Layout**: folgt fest dem gelieferten Referenzdesign
+  („Zweite Seite.pdf“) — Überschriften/Texte dort sind aktuell nicht über die
+  UI editierbar (nur Headerbild, Overlay-Text via Du/Sie, Beratungslink,
+  Freischaltcode und die Design-Farbe).
 - **DIN-5008-Fensterposition**: Die Adressfeld-Position auf Seite 1
   (`lib/pdf/buildHtml.ts`, `.address-block`) wurde nach bestem Wissen aus dem
   Referenzbeispiel übernommen — vor dem produktiven Einsatz einmal mit einem
