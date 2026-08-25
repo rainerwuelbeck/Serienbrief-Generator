@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { compressImageFile } from "@/lib/clientImage";
 import { STOCK_PHOTOS, stockPhotoPublicPath } from "@/lib/stockPhotos";
+import FileUploadButton from "./FileUploadButton";
 import type { StepProps } from "./wizardTypes";
 
 export default function StepPhoto({ state, update }: StepProps) {
@@ -50,11 +51,10 @@ export default function StepPhoto({ state, update }: StepProps) {
 
       {state.photoMode === "upload" && (
         <div className="space-y-2">
-          <input
-            type="file"
+          <FileUploadButton
             accept="image/png,image/jpeg,image/webp"
-            onChange={(e) => handlePhotoFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm"
+            onChange={handlePhotoFile}
+            label="Foto auswählen"
           />
           <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
             Empfohlene Auflösung: mindestens <strong>1200 px breit</strong> (Seitenverhältnis ca.

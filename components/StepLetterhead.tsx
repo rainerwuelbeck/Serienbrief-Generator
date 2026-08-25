@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { compressImageFile } from "@/lib/clientImage";
+import FileUploadButton from "./FileUploadButton";
 import type { LogoPosition, StepProps } from "./wizardTypes";
 
 const POSITIONS: { id: LogoPosition; label: string }[] = [
@@ -72,15 +73,19 @@ export default function StepLetterhead({ state, update }: StepProps) {
 
       {state.letterheadMode === "image" && (
         <div className="space-y-2">
-          <input
-            type="file"
+          <FileUploadButton
             accept="application/pdf,image/png,image/jpeg,image/webp"
-            onChange={(e) => handleLetterheadFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm"
+            onChange={handleLetterheadFile}
+            label="Briefbogen auswählen"
           />
           <p className="text-xs text-slate-500">
             Word-Datei (.docx)? Bitte in Word einmal über „Datei &gt; Speichern unter &gt; PDF“
             exportieren und die PDF hier hochladen.
+          </p>
+          <p className="text-xs text-slate-500">
+            Der Briefbogen sollte <strong>keine eigene Absenderzeile</strong> über dem Adressfeld
+            enthalten — die App setzt die Absenderzeile (siehe unten) selbst darüber, sonst
+            überlagern sich beide.
           </p>
           {state.letterheadFile && (
             <p className="text-sm text-slate-700">
@@ -97,11 +102,10 @@ export default function StepLetterhead({ state, update }: StepProps) {
       {state.letterheadMode === "logo" && (
         <div className="space-y-4">
           <div>
-            <input
-              type="file"
+            <FileUploadButton
               accept="image/png,image/jpeg,image/webp"
-              onChange={(e) => handleLogoFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm"
+              onChange={handleLogoFile}
+              label="Logo auswählen"
             />
             {state.logoFile && (
               <p className="mt-1 text-sm text-slate-700">

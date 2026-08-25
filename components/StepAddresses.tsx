@@ -12,6 +12,7 @@ import {
   type AnredeTemplateId,
   type Recipient,
 } from "@/lib/csv/parseAddresses";
+import FileUploadButton from "./FileUploadButton";
 import type { StepProps } from "./wizardTypes";
 
 export default function StepAddresses({ state, update }: StepProps) {
@@ -63,12 +64,12 @@ export default function StepAddresses({ state, update }: StepProps) {
         </p>
       </div>
 
-      <input
-        type="file"
-        accept=".csv,text/csv"
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-        className="block w-full text-sm"
-      />
+      <FileUploadButton accept=".csv,text/csv" onChange={handleFile} label="CSV-Datei auswählen" />
+      {state.csvFile && !error && (
+        <p className="text-sm text-slate-700">
+          Ausgewählt: <span className="font-medium">{state.csvFile.name}</span>
+        </p>
+      )}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {state.csvHeaders.length > 0 && (
