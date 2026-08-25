@@ -21,12 +21,7 @@ body {
 /* Tiptap-Editor: einfache Standardformatierung für Überschriften/Absätze */
 .letter-editor {
   outline: none;
-  /* Fällt auf 0.95rem zurück, wird aber von der in StepText gewählten
-     Schriftgröße überschrieben (siehe RichTextEditor.tsx, --editor-font-size
-     auf dem Wrapper) - eine direkte font-size-Regel hier würde die per
-     Inline-Style vererbte Größe sonst dank höherer Selektor-Spezifität
-     überstimmen. */
-  font-size: var(--editor-font-size, 0.95rem);
+  font-size: 0.95rem;
   line-height: 1.55;
 }
 .letter-editor h2 {
