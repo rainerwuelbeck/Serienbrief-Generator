@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { applyMapping, parseCsv, type AnredezeileConfig, type ColumnMapping } from "@/lib/csv/parseAddresses";
+import { applyMapping, decodeCsvBytes, parseCsv, type AnredezeileConfig, type ColumnMapping } from "@/lib/csv/parseAddresses";
 import { buildFontFaceCss } from "@/lib/fonts";
 import { buildFullHtml, type DuSieMode, type LetterheadConfig } from "@/lib/pdf/buildHtml";
 import { renderFirstPdfPageToPng } from "@/lib/pdf/letterheadToImage";
@@ -132,6 +132,8 @@ export async function POST(req: Request) {
     return err("Bitte einen Text für die Überschrift eingeben oder sie deaktivieren.");
   }
 
+  const absenderzeile = String(form.get("absenderzeile") ?? "");
+
   const duSieModeRaw = form.get("duSieMode");
   const duSieMode: DuSieMode = duSieModeRaw === "du" ? "du" : "sie";
 
@@ -167,7 +169,7 @@ export async function POST(req: Request) {
 
   let recipients;
   try {
-    const csvText = Buffer.from(await csvFile.arrayBuffer()).toString("utf-8");
+    const csvText = decodeCsvBytes(new Uint8Array(await csvFile.arrayBuffer()));
     const { rows } = parseCsv(csvText);
     recipients = applyMapping(rows, mapping, anredezeileConfig);
   } catch (e) {
@@ -187,7 +189,7 @@ export async function POST(req: Request) {
 
   let qrCodeDataUrl: string;
   try {
-    qrCodeDataUrl = await generateQrDataUrl(beratungslinkUrl, designColor);
+    qrCodeDataUrl = await generateQrDataUrl(beratungslinkUrl, "#000000");
   } catch (e) {
     console.error("QR-Code-Erzeugung fehlgeschlagen:", e);
     return err("Der QR-Code konnte nicht erzeugt werden. Bitte die Beratungslink-URL prüfen.", 500);
@@ -201,6 +203,7 @@ export async function POST(req: Request) {
       bodyHtml,
       showHeadline,
       headlineText,
+      absenderzeile,
       letterhead,
       page2PhotoDataUrl,
       duSieMode,

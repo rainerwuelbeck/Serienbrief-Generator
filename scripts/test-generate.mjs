@@ -45,15 +45,16 @@ async function run(mode) {
   fd.set("headlineText", "Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!");
   fd.set("duSieMode", mode === "letterhead" ? "du" : "sie");
   fd.set("beratungslinkUrl", "https://schwarz.unserebav.de");
+  fd.set("absenderzeile", "Testfirma GmbH · Max Muster · Musterstraße 1 · 12345 Musterstadt");
 
   fd.set("photoMode", "stock");
   fd.set("stockPhotoId", mode === "letterhead" ? "1" : "3");
 
-  fd.set(
-    "csvFile",
-    new Blob([fs.readFileSync("test-data/beispiel-adressen.csv")], { type: "text/csv" }),
-    "beispiel-adressen.csv"
-  );
+  // "logo"-Lauf nutzt zusätzlich die Windows-1252-kodierte Test-CSV (Umlaut-Fix)
+  // mit automatisch generierter Anredezeile, "letterhead"-Lauf die UTF-8-CSV
+  // mit einer eigenen Anredezeile-Spalte.
+  const csvPath = mode === "logo" ? "test-data/beispiel-adressen-cp1252.csv" : "test-data/beispiel-adressen.csv";
+  fd.set("csvFile", new Blob([fs.readFileSync(csvPath)], { type: "text/csv" }), csvPath.split("/").pop());
   fd.set(
     "mapping",
     JSON.stringify({
@@ -65,12 +66,10 @@ async function run(mode) {
       freischaltcode: "Freischaltcode",
     })
   );
-  // Testet beide Anredezeile-Modi: "logo"-Lauf nutzt die CSV-Spalte, der
-  // "letterhead"-Lauf die automatische Generierung aus Vorname/Nachname.
   fd.set(
     "anredezeileConfig",
-    mode === "letterhead"
-      ? JSON.stringify({ mode: "auto", template: "hallo-vorname-nachname" })
+    mode === "logo"
+      ? JSON.stringify({ mode: "auto", template: "hallo-vorname" })
       : JSON.stringify({ mode: "column", column: "Anredezeile" })
   );
 

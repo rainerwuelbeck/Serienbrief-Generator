@@ -15,6 +15,7 @@ export type LetterConfig = {
   bodyHtml: string; // Seite-1-Brieftext mit Merge-Platzhaltern
   showHeadline: boolean;
   headlineText: string; // freier Text, Zeilenumbrüche werden übernommen
+  absenderzeile: string; // kleine Zeile über dem Adressblock, z.B. "Firma GmbH - Ansprechpartner - Straße - PLZ Ort"
   letterhead: LetterheadConfig;
   page2PhotoDataUrl: string; // aufgelöstes Headerbild (Upload oder Standardmotiv) für Seite 2
   duSieMode: DuSieMode;
@@ -47,10 +48,10 @@ function formatFreischaltcode(code: string): string {
   return clean;
 }
 
-function overlayHeadline(mode: DuSieMode): string {
+function overlayLines(mode: DuSieMode): [string, string] {
   return mode === "du"
-    ? "In nur drei Schritten in deinen sicheren Ruhestand"
-    : "In nur drei Schritten in Ihren sicheren Ruhestand";
+    ? ["In nur drei Schritten in", "deinen sicheren Ruhestand"]
+    : ["In nur drei Schritten in", "Ihren sicheren Ruhestand"];
 }
 
 function monitorIconSvg(kind: "info" | "euro" | "check", color: string): string {
@@ -88,9 +89,13 @@ function renderHeadline(config: LetterConfig): string {
 
 function renderPage1(config: LetterConfig, recipient: Recipient): string {
   const body = applyMergeFields(config.bodyHtml, recipient);
+  const absenderzeile = config.absenderzeile.trim()
+    ? `<div class="absenderzeile">${escapeHtml(config.absenderzeile)}</div>`
+    : "";
   return `
 <section class="page page1">
   ${letterheadStyleAndMarkup(config.letterhead)}
+  ${absenderzeile}
   <div class="address-block">
     <div>${escapeHtml(recipient.vorname)} ${escapeHtml(recipient.nachname)}</div>
     <div>${escapeHtml(recipient.strasse)}</div>
@@ -107,13 +112,15 @@ function renderPage2(config: LetterConfig, recipient: Recipient): string {
   const color = config.designColor;
   const url = escapeHtml(config.beratungslinkUrl);
   const code = formatFreischaltcode(recipient.freischaltcode);
+  const [overlayLine1, overlayLine2] = overlayLines(config.duSieMode);
 
   return `
 <section class="page page2">
   <div class="page2-header">
     <img src="${config.page2PhotoDataUrl}" alt="" />
     <div class="page2-overlay">
-      <span>${escapeHtml(overlayHeadline(config.duSieMode))}</span>
+      <div>${escapeHtml(overlayLine1)}</div>
+      <div>${escapeHtml(overlayLine2)}</div>
     </div>
   </div>
 
@@ -230,12 +237,24 @@ export function buildFullHtml(
   }
   .logo-header img { max-height: 22mm; max-width: 60mm; object-fit: contain; }
 
+  .absenderzeile {
+    position: absolute;
+    top: 45mm;
+    left: 25mm;
+    right: 20mm;
+    font-size: 7pt;
+    color: #444;
+    text-decoration: underline;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .address-block {
     position: absolute;
     top: 50mm;
-    left: 20mm;
+    left: 25mm;
     width: 80mm;
-    font-size: 10pt;
+    font-size: ${config.fontSizePt + 1}pt;
     line-height: 1.35;
   }
 
@@ -272,14 +291,14 @@ export function buildFullHtml(
     position: absolute;
     left: 12mm;
     bottom: 10mm;
-    max-width: 130mm;
+    max-width: 155mm;
     background: rgba(0, 0, 0, 0.6);
     color: #fff;
     padding: 5mm 7mm;
     border-radius: 1.5mm;
     font-weight: 700;
-    font-size: 13pt;
-    line-height: 1.35;
+    font-size: 22pt;
+    line-height: 1.3;
   }
 
   .page2-body { padding: 8mm 18mm 0 18mm; font-size: 9.5pt; line-height: 1.4; }
@@ -302,7 +321,7 @@ export function buildFullHtml(
   .p2-col-title { display: block; margin-bottom: 1.5mm; }
   .p2-col p { margin: 0; }
   .p2-link { font-weight: 600; overflow-wrap: anywhere; word-break: normal; font-size: 0.95em; }
-  .p2-qr { flex-shrink: 0; width: 26mm; height: 26mm; align-self: center; }
+  .p2-qr { flex-shrink: 0; width: 19mm; height: 19mm; align-self: center; }
   .p2-qr img { width: 100%; height: 100%; object-fit: contain; }
 
   .p2-divider {

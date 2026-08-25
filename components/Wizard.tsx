@@ -29,6 +29,7 @@ function buildFormData(state: WizardState): FormData {
   }
 
   fd.set("designColor", state.designColor);
+  fd.set("absenderzeile", state.absenderzeile);
   fd.set("bodyHtml", state.bodyHtml);
   fd.set("showHeadline", String(state.showHeadline));
   fd.set("headlineText", state.headlineText);

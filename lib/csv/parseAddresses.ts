@@ -1,5 +1,25 @@
 import Papa from "papaparse";
 
+/**
+ * Dekodiert eine CSV-Datei robust zu Text - unabhängig davon, ob sie als
+ * UTF-8 (mit/ohne BOM) oder als Windows-1252/ANSI gespeichert wurde (typisch
+ * für "CSV (Trennzeichen-getrennt)"-Exporte aus Excel auf einem deutschen
+ * Windows-System). Ohne das würden Umlaute (ö, ä, ü, ß) falsch dargestellt.
+ */
+export function decodeCsvBytes(bytes: Uint8Array): string {
+  const hasUtf8Bom = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+  const body = hasUtf8Bom ? bytes.subarray(3) : bytes;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(body);
+  } catch {
+    try {
+      return new TextDecoder("windows-1252").decode(body);
+    } catch {
+      return new TextDecoder("utf-8").decode(body); // letzter Ausweg, ohne fatal
+    }
+  }
+}
+
 // "Einfache" Felder: werden 1:1 aus je einer CSV-Spalte übernommen.
 export type SimpleField = "vorname" | "nachname" | "strasse" | "plz" | "ort" | "freischaltcode";
 

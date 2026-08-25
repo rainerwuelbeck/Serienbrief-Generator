@@ -5,6 +5,7 @@ import {
   ANREDE_TEMPLATES,
   SIMPLE_FIELDS,
   applyMapping,
+  decodeCsvBytes,
   guessAnredezeileColumn,
   guessMapping,
   parseCsv,
@@ -23,7 +24,7 @@ export default function StepAddresses({ state, update }: StepProps) {
       return;
     }
     try {
-      const text = await file.text();
+      const text = decodeCsvBytes(new Uint8Array(await file.arrayBuffer()));
       const { headers, rows } = parseCsv(text);
       if (headers.length === 0) throw new Error("Konnte keine Spaltenüberschriften finden.");
       const guessedColumn = guessAnredezeileColumn(headers);

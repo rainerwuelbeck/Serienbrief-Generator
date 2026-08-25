@@ -14,6 +14,7 @@ export type WizardState = {
   logoFile: File | null;
   logoPosition: LogoPosition;
   designColor: string;
+  absenderzeile: string;
 
   // Schritt 2: Anschreibentext — entweder unverändert aus einer Vorlage (b)
   // oder frei bearbeitet/individuell (c); technisch dasselbe Feld, die
@@ -47,6 +48,7 @@ export const initialWizardState: WizardState = {
   logoFile: null,
   logoPosition: "left",
   designColor: DEFAULT_DESIGN_COLOR,
+  absenderzeile: "",
 
   bodyHtml: initialStandardText.bodyHtml,
   showHeadline: initialStandardText.defaultHeadline !== "",

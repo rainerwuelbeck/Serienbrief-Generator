@@ -136,6 +136,20 @@ export default function StepLetterhead({ state, update }: StepProps) {
       )}
 
       <div className="border-t border-slate-200 pt-6">
+        <h3 className="mb-1 text-sm font-semibold">Absenderzeile</h3>
+        <p className="mb-2 text-xs text-slate-500">
+          Kleine Zeile über dem Adressfeld, z.B. für die Fensterlasche des Umschlags. Optional.
+        </p>
+        <input
+          type="text"
+          value={state.absenderzeile}
+          onChange={(e) => update({ absenderzeile: e.target.value })}
+          placeholder="Firma GmbH · Ansprechpartner · Straße 1 · 12345 Ort"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div className="border-t border-slate-200 pt-6">
         <h3 className="mb-1 text-sm font-semibold">Design-Farbe</h3>
         <p className="mb-2 text-xs text-slate-500">
           Wird für die Überschrift auf Seite 1 sowie Nummerierungen, Striche und Linien auf Seite 2
