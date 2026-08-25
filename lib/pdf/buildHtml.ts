@@ -16,6 +16,7 @@ export type LetterConfig = {
   showHeadline: boolean;
   headlineText: string; // freier Text, Zeilenumbrüche werden übernommen
   absenderzeile: string; // kleine Zeile über dem Adressblock, z.B. "Firma GmbH - Ansprechpartner - Straße - PLZ Ort"
+  showDate: boolean; // "im [Monat] [Jahr]" rechts zwischen Adressblock und Brieftext
   letterhead: LetterheadConfig;
   page2PhotoDataUrl: string; // aufgelöstes Headerbild (Upload oder Standardmotiv) für Seite 2
   duSieMode: DuSieMode;
@@ -46,6 +47,16 @@ function formatFreischaltcode(code: string): string {
   const clean = code.trim();
   if (clean.length === 8) return `${clean.slice(0, 4)} ${clean.slice(4)}`;
   return clean;
+}
+
+const GERMAN_MONTHS = [
+  "Januar", "Februar", "März", "April", "Mai", "Juni",
+  "Juli", "August", "September", "Oktober", "November", "Dezember",
+];
+
+/** "im August 2026" - für die optionale Datumszeile auf Seite 1. */
+function formatGermanMonthYear(date: Date): string {
+  return `im ${GERMAN_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 function overlayLines(mode: DuSieMode): [string, string] {
@@ -87,11 +98,12 @@ function renderHeadline(config: LetterConfig): string {
   return `<div class="letter-headline" style="color:${config.designColor}">${lines}</div>`;
 }
 
-function renderPage1(config: LetterConfig, recipient: Recipient): string {
+function renderPage1(config: LetterConfig, recipient: Recipient, dateText: string): string {
   const body = applyMergeFields(config.bodyHtml, recipient);
   const absenderzeile = config.absenderzeile.trim()
     ? `<div class="absenderzeile">${escapeHtml(config.absenderzeile)}</div>`
     : "";
+  const date = config.showDate ? `<div class="page1-date">${escapeHtml(dateText)}</div>` : "";
   return `
 <section class="page page1">
   ${letterheadStyleAndMarkup(config.letterhead)}
@@ -101,6 +113,7 @@ function renderPage1(config: LetterConfig, recipient: Recipient): string {
     <div>${escapeHtml(recipient.strasse)}</div>
     <div><span class="plz">${escapeHtml(recipient.plz)}</span> <span class="ort">${escapeHtml(recipient.ort)}</span></div>
   </div>
+  ${date}
   <div class="letter-body">
     ${renderHeadline(config)}
     ${body}
@@ -125,7 +138,10 @@ function renderPage2(config: LetterConfig, recipient: Recipient): string {
   </div>
 
   <div class="page2-body">
-    <h2 class="p2-title">Login Daten für:</h2>
+    <div class="p2-title-row">
+      <h2 class="p2-title">Login Daten für:</h2>
+      <span class="p2-title-name">${escapeHtml(recipient.vorname)} ${escapeHtml(recipient.nachname)}</span>
+    </div>
 
     <div class="p2-split">
       <div class="p2-col">
@@ -188,8 +204,9 @@ export function buildFullHtml(
   fontFaceCss: string
 ): string {
   const font = getFont(config.fontId);
+  const dateText = formatGermanMonthYear(new Date());
   const pages = recipients
-    .map((r) => renderPage1(config, r) + renderPage2(config, r))
+    .map((r) => renderPage1(config, r, dateText) + renderPage2(config, r))
     .join("\n");
 
   return `<!doctype html>
@@ -243,8 +260,7 @@ export function buildFullHtml(
     left: 25mm;
     right: 20mm;
     font-size: 7pt;
-    color: #444;
-    text-decoration: underline;
+    color: #5a5a5a;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -256,6 +272,12 @@ export function buildFullHtml(
     width: 80mm;
     font-size: ${config.fontSizePt + 1}pt;
     line-height: 1.35;
+  }
+  .page1-date {
+    position: absolute;
+    top: 88mm;
+    right: 20mm;
+    font-size: ${config.fontSizePt}pt;
   }
 
   .letter-body {
@@ -281,7 +303,7 @@ export function buildFullHtml(
   .page2-header {
     position: relative;
     width: 100%;
-    height: 78mm;
+    height: 100mm;
     overflow: hidden;
     background: #f2f2f2;
     flex-shrink: 0;
@@ -302,7 +324,9 @@ export function buildFullHtml(
   }
 
   .page2-body { padding: 8mm 18mm 0 18mm; font-size: 9.5pt; line-height: 1.4; }
-  .p2-title { font-size: 13pt; font-weight: 700; margin: 0 0 6mm 0; color: #111; }
+  .p2-title-row { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 6mm 0; gap: 8mm; }
+  .p2-title { font-size: 13pt; font-weight: 700; margin: 0; color: #111; }
+  .p2-title-name { font-size: 13pt; font-weight: 700; color: #111; white-space: nowrap; }
 
   .p2-pill {
     display: inline-block;

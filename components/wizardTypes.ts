@@ -22,6 +22,7 @@ export type WizardState = {
   bodyHtml: string;
   showHeadline: boolean;
   headlineText: string;
+  showDate: boolean;
   duSieMode: DuSieMode;
   fontId: string;
   fontSizePt: number;
@@ -53,6 +54,7 @@ export const initialWizardState: WizardState = {
   bodyHtml: initialStandardText.bodyHtml,
   showHeadline: initialStandardText.defaultHeadline !== "",
   headlineText: initialStandardText.defaultHeadline,
+  showDate: false,
   duSieMode: initialStandardText.duSie,
   fontId: DEFAULT_FONT_ID,
   fontSizePt: 11,

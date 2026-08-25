@@ -46,6 +46,7 @@ async function run(mode) {
   fd.set("duSieMode", mode === "letterhead" ? "du" : "sie");
   fd.set("beratungslinkUrl", "https://schwarz.unserebav.de");
   fd.set("absenderzeile", "Testfirma GmbH · Max Muster · Musterstraße 1 · 12345 Musterstadt");
+  fd.set("showDate", "true");
 
   fd.set("photoMode", "stock");
   fd.set("stockPhotoId", mode === "letterhead" ? "1" : "3");

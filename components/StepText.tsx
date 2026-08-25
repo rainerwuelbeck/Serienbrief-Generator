@@ -86,6 +86,21 @@ export default function StepText({ state, update }: StepProps) {
         )}
       </div>
 
+      <div className="rounded-lg border border-slate-200 p-4">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={state.showDate}
+            onChange={(e) => update({ showDate: e.target.checked })}
+            className="h-4 w-4"
+          />
+          Datum anzeigen
+        </label>
+        <p className="mt-1 text-xs text-slate-500">
+          Rechts zwischen Adressfeld und Brieftext, im Format „im {new Date().toLocaleDateString("de-DE", { month: "long" })} {new Date().getFullYear()}“, Schriftgröße wie Fließtext.
+        </p>
+      </div>
+
       <div>
         <label className="mb-1 block text-sm font-medium">Du/Sie-Anrede</label>
         <p className="mb-2 text-xs text-slate-500">
