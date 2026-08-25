@@ -186,18 +186,6 @@ export default function StepText({ state, update }: StepProps) {
         </div>
       </div>
 
-      <div>
-        <p className="mb-2 text-xs font-medium text-slate-500">
-          Vorschau aller Schriftarten (serverseitig gerendert, damit die Darstellung unabhängig
-          vom eigenen Browser korrekt ist)
-        </p>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/font-specimen.png"
-          alt="Vorschau aller 8 Schriftarten"
-          className="w-full rounded-lg border border-slate-200"
-        />
-      </div>
     </div>
   );
 }
