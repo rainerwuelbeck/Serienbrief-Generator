@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
+import { buildAbsenderzeile } from "@/lib/absenderzeile";
 import { applyMapping, decodeCsvBytes, parseCsv, type AnredezeileConfig, type ColumnMapping } from "@/lib/csv/parseAddresses";
 import { buildFontFaceCss } from "@/lib/fonts";
 import { buildFullHtml, type DuSieMode, type LetterheadConfig } from "@/lib/pdf/buildHtml";
@@ -132,7 +133,11 @@ export async function POST(req: Request) {
     return err("Bitte einen Text für die Überschrift eingeben oder sie deaktivieren.");
   }
 
-  const absenderzeile = String(form.get("absenderzeile") ?? "");
+  const absenderUnternehmensname = String(form.get("absenderUnternehmensname") ?? "");
+  const absenderStrasse = String(form.get("absenderStrasse") ?? "");
+  const absenderPlz = String(form.get("absenderPlz") ?? "");
+  const absenderOrt = String(form.get("absenderOrt") ?? "");
+  const absenderzeile = buildAbsenderzeile(absenderUnternehmensname, absenderStrasse, absenderPlz, absenderOrt);
   const showDate = form.get("showDate") === "true";
   const dateMonthOffsetRaw = Number(form.get("dateMonthOffset") ?? 0);
   const dateMonthOffset = [0, 1, 2].includes(dateMonthOffsetRaw) ? dateMonthOffsetRaw : 0;
@@ -207,6 +212,7 @@ export async function POST(req: Request) {
       showHeadline,
       headlineText,
       absenderzeile,
+      unternehmensname: absenderUnternehmensname,
       showDate,
       dateMonthOffset,
       letterhead,

@@ -41,7 +41,7 @@ async function run(mode) {
 
   fd.set(
     "bodyHtml",
-    "<p>{{Anredezeile}}</p><p>Das ist ein Testtext für {{Vorname}} {{Nachname}}.</p><p>Ihre Geschäftsführung</p>"
+    "<p>{{Anredezeile}}</p><p>Das ist ein Testtext von {{Unternehmensname}} für {{Vorname}} {{Nachname}}.</p><p>Ihre Geschäftsführung</p>"
   );
   fd.set("fontId", "carlito");
   fd.set("fontSizePt", "11");
@@ -50,7 +50,10 @@ async function run(mode) {
   fd.set("headlineText", "Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!");
   fd.set("duSieMode", mode === "letterhead" ? "du" : "sie");
   fd.set("beratungslinkUrl", "https://schwarz.unserebav.de");
-  fd.set("absenderzeile", "Testfirma GmbH · Max Muster · Musterstraße 1 · 12345 Musterstadt");
+  fd.set("absenderUnternehmensname", "Testfirma GmbH");
+  fd.set("absenderStrasse", "Musterstraße 1");
+  fd.set("absenderPlz", "12345");
+  fd.set("absenderOrt", "Musterstadt");
   fd.set("showDate", "true");
   fd.set("dateMonthOffset", mode === "letterhead" ? "2" : "0");
 

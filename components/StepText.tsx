@@ -10,6 +10,7 @@ const MERGE_FIELDS = [
   { token: "{{Vorname}}", label: "Vorname" },
   { token: "{{Nachname}}", label: "Nachname" },
   { token: "{{Freischaltcode}}", label: "Freischaltcode" },
+  { token: "{{Unternehmensname}}", label: "Unternehmensname" },
 ];
 
 /** "August 2026" für den angegebenen Monats-Offset (0 = aktueller Monat). */

@@ -21,6 +21,7 @@ export type LetterConfig = {
   showHeadline: boolean;
   headlineText: string; // freier Text, Zeilenumbrüche werden übernommen
   absenderzeile: string; // kleine Zeile über dem Adressblock, z.B. "Firma GmbH - Ansprechpartner - Straße - PLZ Ort"
+  unternehmensname: string; // für den {{Unternehmensname}}-Platzhalter im Brieftext
   showDate: boolean; // "[Monat] [Jahr]" rechts zwischen Adressblock und Brieftext
   dateMonthOffset: number; // 0 = aktueller Monat, 1 = nächster, 2 = übernächster
   letterhead: LetterheadConfig;
@@ -39,13 +40,14 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
-/** Ersetzt {{Feld}}-Platzhalter im HTML durch die (escaped) Werte des Empfängers. */
-export function applyMergeFields(html: string, recipient: Recipient): string {
+/** Ersetzt {{Feld}}-Platzhalter im HTML durch die (escaped) Werte des Empfängers bzw. der Kampagne. */
+export function applyMergeFields(html: string, recipient: Recipient, unternehmensname: string): string {
   return html
     .replace(/\{\{\s*Vorname\s*\}\}/g, escapeHtml(recipient.vorname))
     .replace(/\{\{\s*Nachname\s*\}\}/g, escapeHtml(recipient.nachname))
     .replace(/\{\{\s*Anredezeile\s*\}\}/g, escapeHtml(recipient.anredezeile))
-    .replace(/\{\{\s*Freischaltcode\s*\}\}/g, escapeHtml(recipient.freischaltcode));
+    .replace(/\{\{\s*Freischaltcode\s*\}\}/g, escapeHtml(recipient.freischaltcode))
+    .replace(/\{\{\s*Unternehmensname\s*\}\}/g, escapeHtml(unternehmensname));
 }
 
 /** "AB12CD34" -> "AB12 CD34" - besser lesbar, ohne den eigentlichen Wert zu verändern. */
@@ -110,7 +112,7 @@ function renderHeadline(config: LetterConfig): string {
 }
 
 function renderPage1(config: LetterConfig, recipient: Recipient, dateText: string): string {
-  const body = applyMergeFields(config.bodyHtml, recipient);
+  const body = applyMergeFields(config.bodyHtml, recipient, config.unternehmensname);
   const absenderzeile = config.absenderzeile.trim()
     ? `<div class="absenderzeile">${escapeHtml(config.absenderzeile)}</div>`
     : "";
