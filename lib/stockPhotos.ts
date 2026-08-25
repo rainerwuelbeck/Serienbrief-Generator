@@ -4,6 +4,7 @@ export const STOCK_PHOTOS: { id: string; label: string; ext: "png" | "jpg" }[] =
   { id: "3", label: "Mann mit Tablet, lächelnd", ext: "png" },
   { id: "4", label: "Paar auf dem Sofa mit Tablet", ext: "jpg" },
   { id: "5", label: "Team im Besprechungsraum", ext: "jpg" },
+  { id: "6", label: "Handschlag im Büro", ext: "jpg" },
 ];
 
 export function stockPhotoPublicPath(id: string): string {

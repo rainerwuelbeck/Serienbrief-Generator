@@ -1,6 +1,6 @@
 "use client";
 
-import { FONTS } from "@/lib/fonts";
+import { FONTS, getFont } from "@/lib/fonts";
 import { STANDARD_TEXTS, getStandardText } from "@/lib/templates/standardTexts";
 import RichTextEditor from "./RichTextEditor";
 import type { StepProps } from "./wizardTypes";
@@ -184,6 +184,20 @@ export default function StepText({ state, update }: StepProps) {
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <p className="mb-2 text-xs font-medium text-slate-500">Vorschau</p>
+        <p
+          style={{
+            fontFamily: `"${getFont(state.fontId).cssFamily}", sans-serif`,
+            fontSize: `${state.fontSizePt}pt`,
+          }}
+          className="text-slate-800"
+        >
+          Sehr geehrte Frau Musterfrau, mit dieser Schrift wird Ihr Anschreiben gedruckt — ÄÖÜäöüß
+          0123456789.
+        </p>
       </div>
     </div>
   );

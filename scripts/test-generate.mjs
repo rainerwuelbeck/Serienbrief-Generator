@@ -49,7 +49,8 @@ async function run(mode) {
   fd.set("showHeadline", "true");
   fd.set("headlineText", "Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!");
   fd.set("duSieMode", mode === "letterhead" ? "du" : "sie");
-  fd.set("beratungslinkUrl", "https://schwarz.unserebav.de");
+  fd.set("beratungslinkSubdomain", "schwarz");
+  fd.set("beratungslinkDomain", "unserebav.de");
   fd.set("absenderUnternehmensname", "Testfirma GmbH");
   fd.set("absenderStrasse", "Musterstraße 1");
   fd.set("absenderPlz", "12345");

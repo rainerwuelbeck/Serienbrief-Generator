@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { compressImageFile } from "@/lib/clientImage";
+import { BERATUNGSLINK_DOMAINS, buildBeratungslinkUrl } from "@/lib/beratungslink";
 import { STOCK_PHOTOS, stockPhotoPublicPath } from "@/lib/stockPhotos";
 import FileUploadButton from "./FileUploadButton";
 import type { StepProps } from "./wizardTypes";
@@ -24,7 +25,7 @@ export default function StepPhoto({ state, update }: StepProps) {
       <div>
         <h2 className="mb-1 text-lg font-semibold">Headerbild für Seite 2</h2>
         <p className="text-sm text-slate-500">
-          Lade ein eigenes Foto/Illustration hoch, oder wähle eines der 5 Standardmotive.
+          Lade ein eigenes Foto/Illustration hoch, oder wähle eines der 6 Standardmotive.
         </p>
       </div>
 
@@ -84,7 +85,11 @@ export default function StepPhoto({ state, update }: StepProps) {
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={stockPhotoPublicPath(p.id)} alt={p.label} className="h-24 w-full object-cover" />
+              <img
+                src={stockPhotoPublicPath(p.id)}
+                alt={p.label}
+                className="aspect-[21/10] w-full object-cover"
+              />
               <div className="bg-slate-50 px-2 py-1 text-xs text-slate-600">{p.label}</div>
             </button>
           ))}
@@ -94,18 +99,41 @@ export default function StepPhoto({ state, update }: StepProps) {
       <div className="border-t border-slate-200 pt-6">
         <label className="mb-1 block text-sm font-medium">Beratungslink-URL</label>
         <p className="mb-2 text-xs text-slate-500">
-          Wird auf Seite 2 als Link angezeigt und als QR-Code eingebettet.
+          Wird auf Seite 2 als Link angezeigt und als QR-Code eingebettet. Nur die Subdomain
+          eingeben, die Endung wird automatisch ergänzt.
         </p>
-        <input
-          type="text"
-          value={state.beratungslinkUrl}
-          onChange={(e) => update({ beratungslinkUrl: e.target.value })}
-          placeholder="https://kunde.unserebav.de"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm sm:w-2/3"
-        />
-        {!state.beratungslinkUrl.startsWith("https://") || state.beratungslinkUrl === "https://" ? (
-          <p className="mt-1 text-xs text-amber-600">Bitte die vollständige URL nach „https://“ ergänzen.</p>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-500">https://</span>
+          <input
+            type="text"
+            value={state.beratungslinkSubdomain}
+            onChange={(e) => update({ beratungslinkSubdomain: e.target.value })}
+            placeholder="mustermann"
+            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm sm:max-w-[220px]"
+          />
+          <span className="text-sm text-slate-500">.</span>
+          <select
+            value={state.beratungslinkDomain}
+            onChange={(e) => update({ beratungslinkDomain: e.target.value })}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            {BERATUNGSLINK_DOMAINS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+        {state.beratungslinkSubdomain.trim() ? (
+          <p className="mt-2 text-xs text-slate-500">
+            Vorschau:{" "}
+            <span className="font-medium text-slate-700">
+              {buildBeratungslinkUrl(state.beratungslinkSubdomain, state.beratungslinkDomain)}
+            </span>
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-amber-600">Bitte eine Subdomain eingeben, z.B. „mustermann“.</p>
+        )}
       </div>
     </div>
   );

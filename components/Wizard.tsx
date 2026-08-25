@@ -45,7 +45,8 @@ function buildFormData(state: WizardState): FormData {
   fd.set("photoMode", state.photoMode);
   if (state.photoMode === "upload" && state.photoFile) fd.set("photoFile", state.photoFile);
   if (state.photoMode === "stock") fd.set("stockPhotoId", state.stockPhotoId);
-  fd.set("beratungslinkUrl", state.beratungslinkUrl);
+  fd.set("beratungslinkSubdomain", state.beratungslinkSubdomain);
+  fd.set("beratungslinkDomain", state.beratungslinkDomain);
 
   if (state.csvFile) fd.set("csvFile", state.csvFile);
   fd.set("mapping", JSON.stringify(state.mapping));
@@ -90,9 +91,9 @@ export default function Wizard() {
       setStep(3);
       return "Bitte ein Headerfoto hochladen (Schritt 3).";
     }
-    if (!state.beratungslinkUrl.startsWith("https://") || state.beratungslinkUrl.trim() === "https://") {
+    if (!state.beratungslinkSubdomain.trim()) {
       setStep(3);
-      return "Bitte die vollständige Beratungslink-URL angeben (Schritt 3).";
+      return "Bitte die Subdomain für den Beratungslink angeben (Schritt 3).";
     }
     if (!state.csvFile || state.csvRows.length === 0) {
       setStep(4);

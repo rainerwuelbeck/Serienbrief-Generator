@@ -2,6 +2,7 @@ import type { AnredezeileConfig, ColumnMapping } from "@/lib/csv/parseAddresses"
 import { DEFAULT_FONT_ID } from "@/lib/fonts";
 import { getStandardText } from "@/lib/templates/standardTexts";
 import type { DuSieMode } from "@/lib/pdf/buildHtml";
+import { DEFAULT_BERATUNGSLINK_DOMAIN } from "@/lib/beratungslink";
 
 export type LogoPosition = "left" | "center" | "right";
 
@@ -35,7 +36,8 @@ export type WizardState = {
   photoMode: "upload" | "stock";
   photoFile: File | null;
   stockPhotoId: string;
-  beratungslinkUrl: string;
+  beratungslinkSubdomain: string;
+  beratungslinkDomain: string;
 
   // Schritt 4: Adressliste
   csvFile: File | null;
@@ -70,7 +72,8 @@ export const initialWizardState: WizardState = {
   photoMode: "stock",
   photoFile: null,
   stockPhotoId: "1",
-  beratungslinkUrl: "https://",
+  beratungslinkSubdomain: "",
+  beratungslinkDomain: DEFAULT_BERATUNGSLINK_DOMAIN,
 
   csvFile: null,
   csvHeaders: [],

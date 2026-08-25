@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { buildAbsenderzeile } from "@/lib/absenderzeile";
+import { buildBeratungslinkUrl } from "@/lib/beratungslink";
 import { applyMapping, decodeCsvBytes, parseCsv, type AnredezeileConfig, type ColumnMapping } from "@/lib/csv/parseAddresses";
 import { buildFontFaceCss } from "@/lib/fonts";
 import { buildFullHtml, type DuSieMode, type LetterheadConfig } from "@/lib/pdf/buildHtml";
@@ -145,10 +146,12 @@ export async function POST(req: Request) {
   const duSieModeRaw = form.get("duSieMode");
   const duSieMode: DuSieMode = duSieModeRaw === "du" ? "du" : "sie";
 
-  const beratungslinkUrl = String(form.get("beratungslinkUrl") ?? "");
-  if (!beratungslinkUrl.startsWith("https://") || beratungslinkUrl.trim() === "https://") {
-    return err("Bitte die vollständige Beratungslink-URL angeben (beginnend mit https://).");
+  const beratungslinkSubdomain = String(form.get("beratungslinkSubdomain") ?? "");
+  const beratungslinkDomain = String(form.get("beratungslinkDomain") ?? "");
+  if (!beratungslinkSubdomain.trim()) {
+    return err("Bitte die Subdomain für den Beratungslink angeben.");
   }
+  const beratungslinkUrl = buildBeratungslinkUrl(beratungslinkSubdomain, beratungslinkDomain);
 
   const fontId = String(form.get("fontId") ?? "carlito");
   const fontSizePt = Number(form.get("fontSizePt") ?? 11) || 11;

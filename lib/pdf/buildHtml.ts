@@ -260,7 +260,7 @@ export function buildFullHtml(
     height: 40mm;
     display: flex;
     align-items: center;
-    padding: 10mm 20mm 0 20mm;
+    padding: 5mm 20mm 0 20mm;
   }
   .logo-header img { max-height: 22mm; max-width: 60mm; object-fit: contain; }
 
