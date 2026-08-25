@@ -92,6 +92,8 @@ export default function StepText({ state, update }: StepProps) {
           onChange={(html) => update({ bodyHtml: html })}
           mergeFields={MERGE_FIELDS}
           minHeight="280px"
+          fontFamily={`"${getFont(state.fontId).cssFamily}", sans-serif`}
+          fontSizePt={state.fontSizePt}
         />
       </div>
 

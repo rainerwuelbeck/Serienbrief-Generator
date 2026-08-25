@@ -4,7 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 
 type Props = {
   value: string;
@@ -12,9 +12,20 @@ type Props = {
   minHeight?: string;
   /** Merge-Felder, die per Klick an der Cursorposition eingefügt werden können */
   mergeFields?: { token: string; label: string }[];
+  /** CSS-font-family (z.B. `"Carlito", sans-serif`), damit der Editor-Inhalt live
+   * in der im Wizard gewählten Schriftart angezeigt wird - analog zur PDF-Ausgabe. */
+  fontFamily?: string;
+  fontSizePt?: number;
 };
 
-export default function RichTextEditor({ value, onChange, minHeight = "220px", mergeFields }: Props) {
+export default function RichTextEditor({
+  value,
+  onChange,
+  minHeight = "220px",
+  mergeFields,
+  fontFamily,
+  fontSizePt,
+}: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -92,7 +103,17 @@ export default function RichTextEditor({ value, onChange, minHeight = "220px", m
           </>
         )}
       </div>
-      <EditorContent editor={editor} style={{ minHeight }} className="px-4 py-3" />
+      <EditorContent
+        editor={editor}
+        style={
+          {
+            minHeight,
+            fontFamily,
+            "--editor-font-size": fontSizePt ? `${fontSizePt}pt` : undefined,
+          } as CSSProperties
+        }
+        className="px-4 py-3"
+      />
     </div>
   );
 }
