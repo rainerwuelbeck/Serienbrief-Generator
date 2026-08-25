@@ -155,48 +155,48 @@ export default function StepText({ state, update }: StepProps) {
         </div>
       </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium">Schriftart</label>
-        <p className="mb-2 text-xs text-slate-500">
-          Jede Zeile zeigt einen Beispielsatz in der jeweiligen Schrift, so wie sie im Anschreiben
-          gedruckt wird.
-        </p>
-        <div className="space-y-2">
-          {FONTS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => update({ fontId: f.id })}
-              className={`w-full rounded-lg border px-3 py-2 text-left ${
-                state.fontId === f.id
-                  ? "border-sky-600 bg-sky-50"
-                  : "border-slate-300 bg-white hover:bg-slate-50"
-              }`}
-            >
-              <div className="mb-0.5 text-xs text-slate-500">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-sm font-medium">Schriftart</label>
+          <select
+            value={state.fontId}
+            onChange={(e) => update({ fontId: e.target.value })}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            {FONTS.map((f) => (
+              <option key={f.id} value={f.id}>
                 {f.label} ({f.hint})
-              </div>
-              <div style={{ fontFamily: `"${f.cssFamily}", sans-serif` }} className="text-slate-800">
-                Sehr geehrte Frau Musterfrau, mit dieser Schrift wird Ihr Anschreiben gedruckt.
-              </div>
-            </button>
-          ))}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Schriftgröße</label>
+          <select
+            value={state.fontSizePt}
+            onChange={(e) => update({ fontSizePt: Number(e.target.value) })}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            {[9, 10, 10.5, 11, 12, 13].map((pt) => (
+              <option key={pt} value={pt}>
+                {pt} pt
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium">Schriftgröße</label>
-        <select
-          value={state.fontSizePt}
-          onChange={(e) => update({ fontSizePt: Number(e.target.value) })}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-1/2"
-        >
-          {[9, 10, 10.5, 11, 12, 13].map((pt) => (
-            <option key={pt} value={pt}>
-              {pt} pt
-            </option>
-          ))}
-        </select>
+        <p className="mb-2 text-xs font-medium text-slate-500">
+          Vorschau aller Schriftarten (serverseitig gerendert, damit die Darstellung unabhängig
+          vom eigenen Browser korrekt ist)
+        </p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/font-specimen.png"
+          alt="Vorschau aller 8 Schriftarten"
+          className="w-full rounded-lg border border-slate-200"
+        />
       </div>
     </div>
   );
