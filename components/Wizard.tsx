@@ -34,6 +34,7 @@ function buildFormData(state: WizardState): FormData {
   fd.set("showHeadline", String(state.showHeadline));
   fd.set("headlineText", state.headlineText);
   fd.set("showDate", String(state.showDate));
+  fd.set("dateMonthOffset", String(state.dateMonthOffset));
   fd.set("duSieMode", state.duSieMode);
   fd.set("fontId", state.fontId);
   fd.set("fontSizePt", String(state.fontSizePt));

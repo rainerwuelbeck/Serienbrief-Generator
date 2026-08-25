@@ -12,6 +12,14 @@ const MERGE_FIELDS = [
   { token: "{{Freischaltcode}}", label: "Freischaltcode" },
 ];
 
+/** "August 2026" für den angegebenen Monats-Offset (0 = aktueller Monat). */
+function monthYearLabel(offset: number): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  return d.toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+}
+
 export default function StepText({ state, update }: StepProps) {
   return (
     <div className="space-y-8">
@@ -97,8 +105,20 @@ export default function StepText({ state, update }: StepProps) {
           Datum anzeigen
         </label>
         <p className="mt-1 text-xs text-slate-500">
-          Rechts zwischen Adressfeld und Brieftext, im Format „im {new Date().toLocaleDateString("de-DE", { month: "long" })} {new Date().getFullYear()}“, Schriftgröße wie Fließtext.
+          Rechts zwischen Adressfeld und Brieftext, Format „{monthYearLabel(0)}“, Schriftgröße wie
+          Fließtext.
         </p>
+        {state.showDate && (
+          <select
+            value={state.dateMonthOffset}
+            onChange={(e) => update({ dateMonthOffset: Number(e.target.value) as 0 | 1 | 2 })}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-1/2"
+          >
+            <option value={0}>Aktueller Monat ({monthYearLabel(0)})</option>
+            <option value={1}>Nächster Monat ({monthYearLabel(1)})</option>
+            <option value={2}>Übernächster Monat ({monthYearLabel(2)})</option>
+          </select>
+        )}
       </div>
 
       <div>

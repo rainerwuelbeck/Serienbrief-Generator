@@ -134,6 +134,8 @@ export async function POST(req: Request) {
 
   const absenderzeile = String(form.get("absenderzeile") ?? "");
   const showDate = form.get("showDate") === "true";
+  const dateMonthOffsetRaw = Number(form.get("dateMonthOffset") ?? 0);
+  const dateMonthOffset = [0, 1, 2].includes(dateMonthOffsetRaw) ? dateMonthOffsetRaw : 0;
 
   const duSieModeRaw = form.get("duSieMode");
   const duSieMode: DuSieMode = duSieModeRaw === "du" ? "du" : "sie";
@@ -206,6 +208,7 @@ export async function POST(req: Request) {
       headlineText,
       absenderzeile,
       showDate,
+      dateMonthOffset,
       letterhead,
       page2PhotoDataUrl,
       duSieMode,

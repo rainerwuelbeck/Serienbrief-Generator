@@ -16,7 +16,8 @@ export type LetterConfig = {
   showHeadline: boolean;
   headlineText: string; // freier Text, Zeilenumbrüche werden übernommen
   absenderzeile: string; // kleine Zeile über dem Adressblock, z.B. "Firma GmbH - Ansprechpartner - Straße - PLZ Ort"
-  showDate: boolean; // "im [Monat] [Jahr]" rechts zwischen Adressblock und Brieftext
+  showDate: boolean; // "[Monat] [Jahr]" rechts zwischen Adressblock und Brieftext
+  dateMonthOffset: number; // 0 = aktueller Monat, 1 = nächster, 2 = übernächster
   letterhead: LetterheadConfig;
   page2PhotoDataUrl: string; // aufgelöstes Headerbild (Upload oder Standardmotiv) für Seite 2
   duSieMode: DuSieMode;
@@ -54,9 +55,14 @@ const GERMAN_MONTHS = [
   "Juli", "August", "September", "Oktober", "November", "Dezember",
 ];
 
-/** "im August 2026" - für die optionale Datumszeile auf Seite 1. */
+/** "August 2026" - für die optionale Datumszeile auf Seite 1. */
 function formatGermanMonthYear(date: Date): string {
-  return `im ${GERMAN_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+  return `${GERMAN_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/** Verschiebt ein Datum um `offset` Monate (0 = aktueller Monat, 1 = nächster, 2 = übernächster). */
+function addMonths(date: Date, offset: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + offset, 1);
 }
 
 function overlayLines(mode: DuSieMode): [string, string] {
@@ -138,10 +144,7 @@ function renderPage2(config: LetterConfig, recipient: Recipient): string {
   </div>
 
   <div class="page2-body">
-    <div class="p2-title-row">
-      <h2 class="p2-title">Login Daten für:</h2>
-      <span class="p2-title-name">${escapeHtml(recipient.vorname)} ${escapeHtml(recipient.nachname)}</span>
-    </div>
+    <h2 class="p2-title">Login Daten für: ${escapeHtml(recipient.vorname)} ${escapeHtml(recipient.nachname)}</h2>
 
     <div class="p2-split">
       <div class="p2-col">
@@ -204,7 +207,7 @@ export function buildFullHtml(
   fontFaceCss: string
 ): string {
   const font = getFont(config.fontId);
-  const dateText = formatGermanMonthYear(new Date());
+  const dateText = formatGermanMonthYear(addMonths(new Date(), config.dateMonthOffset));
   const pages = recipients
     .map((r) => renderPage1(config, r, dateText) + renderPage2(config, r))
     .join("\n");
@@ -324,9 +327,7 @@ export function buildFullHtml(
   }
 
   .page2-body { padding: 8mm 18mm 0 18mm; font-size: 9.5pt; line-height: 1.4; }
-  .p2-title-row { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 6mm 0; gap: 8mm; }
-  .p2-title { font-size: 13pt; font-weight: 700; margin: 0; color: #111; }
-  .p2-title-name { font-size: 13pt; font-weight: 700; color: #111; white-space: nowrap; }
+  .p2-title { font-size: 13pt; font-weight: 700; margin: 0 0 6mm 0; color: #111; }
 
   .p2-pill {
     display: inline-block;
