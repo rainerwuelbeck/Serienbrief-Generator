@@ -4,6 +4,11 @@ import { getFont } from "@/lib/fonts";
 export type LogoPosition = "left" | "center" | "right";
 export type DuSieMode = "du" | "sie";
 
+// Ersetzt reines Schwarz im gesamten Dokument (Fließtext, Überschriften,
+// Rahmen) durch ein elegantes Dunkelgrau. Farbige Elemente (Design-Farbe,
+// weißer Text auf farbigen/dunklen Flächen) bleiben davon unberührt.
+const TEXT_COLOR = "#2A2A2E";
+
 export type LetterheadConfig =
   | { mode: "image"; dataUrl: string } // voller Seite-1-Hintergrund (hochgeladener Briefbogen, ggf. aus PDF konvertiert)
   | { mode: "logo"; dataUrl: string; position: LogoPosition }; // kein Briefbogen -> weiße Seite + Logo
@@ -225,7 +230,7 @@ export function buildFullHtml(
     font-family: "${font.cssFamily}", sans-serif;
     font-size: ${config.fontSizePt}pt;
     line-height: 1.45;
-    color: #111;
+    color: ${TEXT_COLOR};
   }
   @page { size: A4; margin: 0; }
 
@@ -327,7 +332,7 @@ export function buildFullHtml(
   }
 
   .page2-body { padding: 8mm 18mm 0 18mm; font-size: 9.5pt; line-height: 1.4; }
-  .p2-title { font-size: 13pt; font-weight: 700; margin: 0 0 6mm 0; color: #111; }
+  .p2-title { font-size: 13pt; font-weight: 700; margin: 0 0 6mm 0; color: ${TEXT_COLOR}; }
 
   .p2-pill {
     display: inline-block;
@@ -382,13 +387,13 @@ export function buildFullHtml(
   .p2-step-body p { margin: 1.5mm 0 0 0; }
   .p2-code-box {
     flex-shrink: 0;
-    border: 1pt solid #333;
+    border: 1pt solid ${TEXT_COLOR};
     border-radius: 1.5mm;
     padding: 3mm 5mm;
     text-align: center;
     align-self: center;
   }
-  .p2-code-label { font-size: 7.5pt; color: #333; margin-bottom: 1.5mm; }
+  .p2-code-label { font-size: 7.5pt; color: ${TEXT_COLOR}; margin-bottom: 1.5mm; }
   .p2-code-value { font-size: 12pt; font-weight: 700; letter-spacing: 0.8pt; white-space: nowrap; }
 </style>
 </head>
