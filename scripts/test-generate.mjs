@@ -55,11 +55,19 @@ async function run(mode) {
     JSON.stringify({
       vorname: "Vorname",
       nachname: "Nachname",
-      anredezeile: "Anredezeile",
       strasse: "Strasse",
-      plzOrt: "PLZ_Ort",
+      plz: "PLZ",
+      ort: "Ort",
       freischaltcode: "Freischaltcode",
     })
+  );
+  // Testet beide Anredezeile-Modi: "logo"-Lauf nutzt die CSV-Spalte, der
+  // "letterhead"-Lauf die automatische Generierung aus Vorname/Nachname.
+  fd.set(
+    "anredezeileConfig",
+    mode === "letterhead"
+      ? JSON.stringify({ mode: "auto", template: "hallo-vorname-nachname" })
+      : JSON.stringify({ mode: "column", column: "Anredezeile" })
   );
 
   const res = await fetch(`${BASE}/api/generate`, {

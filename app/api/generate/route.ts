@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { applyMapping, parseCsv, type ColumnMapping } from "@/lib/csv/parseAddresses";
+import { applyMapping, parseCsv, type AnredezeileConfig, type ColumnMapping } from "@/lib/csv/parseAddresses";
 import { buildFontFaceCss } from "@/lib/fonts";
 import { buildFullHtml, type LetterheadConfig } from "@/lib/pdf/buildHtml";
 import { renderFirstPdfPageToPng } from "@/lib/pdf/letterheadToImage";
@@ -128,16 +128,22 @@ export async function POST(req: Request) {
 
   const csvFile = form.get("csvFile");
   const mappingRaw = form.get("mapping");
+  const anredezeileConfigRaw = form.get("anredezeileConfig");
   if (!(csvFile instanceof File) || csvFile.size === 0) {
     return err("Bitte eine CSV-Adressliste hochladen.");
   }
   if (typeof mappingRaw !== "string") {
     return err("Spalten-Zuordnung fehlt.");
   }
+  if (typeof anredezeileConfigRaw !== "string") {
+    return err("Einstellung für die Briefanredezeile fehlt.");
+  }
 
   let mapping: ColumnMapping;
+  let anredezeileConfig: AnredezeileConfig;
   try {
     mapping = JSON.parse(mappingRaw);
+    anredezeileConfig = JSON.parse(anredezeileConfigRaw);
   } catch {
     return err("Spalten-Zuordnung ist ungültig.");
   }
@@ -146,7 +152,7 @@ export async function POST(req: Request) {
   try {
     const csvText = Buffer.from(await csvFile.arrayBuffer()).toString("utf-8");
     const { rows } = parseCsv(csvText);
-    recipients = applyMapping(rows, mapping);
+    recipients = applyMapping(rows, mapping, anredezeileConfig);
   } catch (e) {
     return err(e instanceof Error ? e.message : "CSV konnte nicht verarbeitet werden.");
   }

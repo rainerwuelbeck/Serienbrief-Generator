@@ -1,29 +1,45 @@
 import Papa from "papaparse";
 
-export type RequiredField =
-  | "vorname"
-  | "nachname"
-  | "anredezeile"
-  | "strasse"
-  | "plzOrt"
-  | "freischaltcode";
+// "Einfache" Felder: werden 1:1 aus je einer CSV-Spalte übernommen.
+export type SimpleField = "vorname" | "nachname" | "strasse" | "plz" | "ort" | "freischaltcode";
 
-export const REQUIRED_FIELDS: { key: RequiredField; label: string; hint: string }[] = [
+export const SIMPLE_FIELDS: { key: SimpleField; label: string; hint: string }[] = [
   { key: "vorname", label: "Vorname", hint: "z.B. Max" },
   { key: "nachname", label: "Nachname", hint: "z.B. Mustermann" },
-  {
-    key: "anredezeile",
-    label: "Briefanredezeile",
-    hint: "die fertige Anrede-Zeile, z.B. „Lieber Max,“ oder „Sehr geehrter Herr Mustermann,“",
-  },
   { key: "strasse", label: "Straße + Hausnummer", hint: "für das Adressfeld" },
-  { key: "plzOrt", label: "PLZ + Ort", hint: "für das Adressfeld" },
+  { key: "plz", label: "PLZ", hint: "Postleitzahl, für das Adressfeld" },
+  { key: "ort", label: "Ort", hint: "für das Adressfeld" },
   { key: "freischaltcode", label: "Freischaltcode", hint: "persönlicher Zugangscode" },
 ];
 
-export type ColumnMapping = Partial<Record<RequiredField, string>>;
+export type ColumnMapping = Partial<Record<SimpleField, string>>;
 
-export type Recipient = Record<RequiredField, string> & {
+// Briefanredezeile: entweder aus einer eigenen CSV-Spalte, oder automatisch aus
+// Vorname/Nachname nach einer der 4 festen Vorlagen erzeugt.
+export type AnredeTemplateId =
+  | "liebe-vorname"
+  | "liebe-vorname-nachname"
+  | "hallo-vorname"
+  | "hallo-vorname-nachname";
+
+export const ANREDE_TEMPLATES: { id: AnredeTemplateId; label: string; build: (vorname: string, nachname: string) => string }[] = [
+  { id: "liebe-vorname", label: "Liebe:r [Vorname],", build: (v) => `Liebe:r ${v},` },
+  { id: "liebe-vorname-nachname", label: "Liebe:r [Vorname] [Nachname],", build: (v, n) => `Liebe:r ${v} ${n},` },
+  { id: "hallo-vorname", label: "Hallo [Vorname],", build: (v) => `Hallo ${v},` },
+  { id: "hallo-vorname-nachname", label: "Hallo [Vorname] [Nachname],", build: (v, n) => `Hallo ${v} ${n},` },
+];
+
+export function buildAnredezeile(templateId: AnredeTemplateId, vorname: string, nachname: string): string {
+  const template = ANREDE_TEMPLATES.find((t) => t.id === templateId) ?? ANREDE_TEMPLATES[0];
+  return template.build(vorname, nachname);
+}
+
+export type AnredezeileConfig =
+  | { mode: "column"; column: string }
+  | { mode: "auto"; template: AnredeTemplateId };
+
+export type Recipient = Record<SimpleField, string> & {
+  anredezeile: string;
   /** komplette Rohzeile, falls weitere Spalten für spätere Erweiterungen gebraucht werden */
   raw: Record<string, string>;
 };
@@ -52,21 +68,21 @@ export function parseCsv(text: string): ParsedCsv {
   return { headers, rows };
 }
 
-/** Versucht Spaltennamen automatisch den Pflichtfeldern zuzuordnen (Best-Effort, editierbar in der UI). */
+/** Versucht Spaltennamen automatisch den einfachen Feldern zuzuordnen (Best-Effort, editierbar in der UI). */
 export function guessMapping(headers: string[]): ColumnMapping {
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const table: Record<RequiredField, string[]> = {
+  const table: Record<SimpleField, string[]> = {
     vorname: ["vorname", "firstname", "givenname"],
     nachname: ["nachname", "name", "lastname", "surname", "familyname"],
-    anredezeile: ["anredezeile", "briefanrede", "anrede", "salutation", "anredetext"],
     strasse: ["strasse", "straße", "street", "adresse1"],
-    plzOrt: ["plzort", "plzundort", "ort", "city", "postleitzahlort"],
+    plz: ["plz", "postleitzahl", "zip", "zipcode", "postcode"],
+    ort: ["ort", "stadt", "city", "town"],
     freischaltcode: ["freischaltcode", "code", "zugangscode", "aktivierungscode"],
   };
   const mapping: ColumnMapping = {};
   for (const header of headers) {
     const n = normalize(header);
-    for (const [field, candidates] of Object.entries(table) as [RequiredField, string[]][]) {
+    for (const [field, candidates] of Object.entries(table) as [SimpleField, string[]][]) {
       if (mapping[field]) continue;
       if (candidates.includes(n)) mapping[field] = header;
     }
@@ -74,19 +90,38 @@ export function guessMapping(headers: string[]): ColumnMapping {
   return mapping;
 }
 
-export function applyMapping(rows: Record<string, string>[], mapping: ColumnMapping): Recipient[] {
-  const missing = REQUIRED_FIELDS.filter((f) => !mapping[f.key]);
+/** Rät eine passende Spalte für eine (optionale) fertige Anredezeile, falls vorhanden. */
+export function guessAnredezeileColumn(headers: string[]): string | undefined {
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const candidates = ["anredezeile", "briefanrede", "anredetext", "salutation"];
+  return headers.find((h) => candidates.includes(normalize(h)));
+}
+
+export function applyMapping(
+  rows: Record<string, string>[],
+  mapping: ColumnMapping,
+  anredezeileConfig: AnredezeileConfig
+): Recipient[] {
+  const missing = SIMPLE_FIELDS.filter((f) => !mapping[f.key]);
   if (missing.length) {
     throw new Error(
       `Bitte alle Felder zuordnen. Es fehlt: ${missing.map((m) => m.label).join(", ")}`
     );
   }
+  if (anredezeileConfig.mode === "column" && !anredezeileConfig.column) {
+    throw new Error("Bitte eine Spalte für die Briefanredezeile wählen (oder auf „Automatisch generieren“ umstellen).");
+  }
+
   return rows.map((row) => {
     const rec: Partial<Recipient> = { raw: row };
-    for (const field of REQUIRED_FIELDS) {
+    for (const field of SIMPLE_FIELDS) {
       const header = mapping[field.key]!;
       rec[field.key] = (row[header] ?? "").trim();
     }
+    rec.anredezeile =
+      anredezeileConfig.mode === "auto"
+        ? buildAnredezeile(anredezeileConfig.template, rec.vorname ?? "", rec.nachname ?? "")
+        : (row[anredezeileConfig.column] ?? "").trim();
     return rec as Recipient;
   });
 }

@@ -55,7 +55,7 @@ function renderPage1(config: LetterConfig, recipient: Recipient): string {
   <div class="address-block">
     <div>${escapeHtml(recipient.vorname)} ${escapeHtml(recipient.nachname)}</div>
     <div>${escapeHtml(recipient.strasse)}</div>
-    <div>${escapeHtml(recipient.plzOrt)}</div>
+    <div><span class="plz">${escapeHtml(recipient.plz)}</span> <span class="ort">${escapeHtml(recipient.ort)}</span></div>
   </div>
   <div class="letter-body">${body}</div>
 </section>`;

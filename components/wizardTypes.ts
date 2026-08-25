@@ -1,4 +1,4 @@
-import type { ColumnMapping } from "@/lib/csv/parseAddresses";
+import type { AnredezeileConfig, ColumnMapping } from "@/lib/csv/parseAddresses";
 import { DEFAULT_FONT_ID } from "@/lib/fonts";
 import { DEFAULT_PAGE2_TEXT, getStandardText } from "@/lib/templates/standardTexts";
 
@@ -29,6 +29,7 @@ export type WizardState = {
   csvHeaders: string[];
   csvRows: Record<string, string>[];
   mapping: ColumnMapping;
+  anredezeileConfig: AnredezeileConfig;
 };
 
 export const initialWizardState: WizardState = {
@@ -50,6 +51,7 @@ export const initialWizardState: WizardState = {
   csvHeaders: [],
   csvRows: [],
   mapping: {},
+  anredezeileConfig: { mode: "column", column: "" },
 };
 
 export type StepProps = {
