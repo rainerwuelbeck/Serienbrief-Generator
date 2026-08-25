@@ -41,4 +41,4 @@ yarn-error.log*
 next-env.d.ts
 
 # lokale Testläufe gegen andere Umgebungen (siehe scripts/test-generate.mjs, TEST_OUT_SUFFIX)
-test-data/output-*-prod.pdf
+test-data/output-*prod*.pdf
