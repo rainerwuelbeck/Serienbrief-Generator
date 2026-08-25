@@ -1,7 +1,6 @@
 "use client";
 
 import { FONTS } from "@/lib/fonts";
-import { ANREDE_TEMPLATES, type AnredeTemplateId } from "@/lib/csv/parseAddresses";
 import { STANDARD_TEXTS, getStandardText } from "@/lib/templates/standardTexts";
 import RichTextEditor from "./RichTextEditor";
 import type { StepProps } from "./wizardTypes";
@@ -82,69 +81,6 @@ export default function StepText({ state, update }: StepProps) {
             placeholder={"Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!"}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
-        )}
-      </div>
-
-      <div className="rounded-lg border border-slate-200 p-4">
-        <label className="mb-2 block text-sm font-medium">Briefanredezeile</label>
-        <div className="mb-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => update({ anredezeileConfig: { mode: "column", column: state.csvHeaders[0] ?? "" } })}
-            className={`rounded-lg border px-3 py-1.5 text-sm ${
-              state.anredezeileConfig.mode === "column"
-                ? "border-sky-600 bg-sky-600 text-white"
-                : "border-slate-300 bg-white hover:bg-slate-100"
-            }`}
-          >
-            Aus CSV-Spalte
-          </button>
-          <button
-            type="button"
-            onClick={() => update({ anredezeileConfig: { mode: "auto", template: "liebe-vorname" } })}
-            className={`rounded-lg border px-3 py-1.5 text-sm ${
-              state.anredezeileConfig.mode === "auto"
-                ? "border-sky-600 bg-sky-600 text-white"
-                : "border-slate-300 bg-white hover:bg-slate-100"
-            }`}
-          >
-            Automatisch generieren
-          </button>
-        </div>
-
-        {state.anredezeileConfig.mode === "column" ? (
-          state.csvHeaders.length > 0 ? (
-            <select
-              value={state.anredezeileConfig.column}
-              onChange={(e) => update({ anredezeileConfig: { mode: "column", column: e.target.value } })}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-1/2"
-            >
-              <option value="">— Spalte wählen —</option>
-              {state.csvHeaders.map((h) => (
-                <option key={h} value={h}>
-                  {h}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="text-xs text-slate-500">
-              Spaltenauswahl erscheint hier, sobald in Schritt 4 eine CSV-Datei hochgeladen wurde.
-            </p>
-          )
-        ) : (
-          <select
-            value={state.anredezeileConfig.template}
-            onChange={(e) =>
-              update({ anredezeileConfig: { mode: "auto", template: e.target.value as AnredeTemplateId } })
-            }
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-1/2"
-          >
-            {ANREDE_TEMPLATES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
         )}
       </div>
 

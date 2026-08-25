@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import {
+  ANREDE_TEMPLATES,
   SIMPLE_FIELDS,
   applyMapping,
   decodeCsvBytes,
   guessAnredezeileColumn,
   guessMapping,
   parseCsv,
-  type AnredezeileConfig,
+  type AnredeTemplateId,
   type Recipient,
 } from "@/lib/csv/parseAddresses";
 import FileUploadButton from "./FileUploadButton";
@@ -25,25 +26,19 @@ export default function StepAddresses({ state, update }: StepProps) {
     file: File,
     headers: string[],
     rows: Record<string, string>[],
-    opts?: { forceAutoAnredezeile?: boolean }
+    opts?: { forceAutoTemplate?: AnredeTemplateId }
   ) {
     const guessedColumn = guessAnredezeileColumn(headers);
-    const anredezeileUntouched = state.anredezeileConfig.mode === "column" && !state.anredezeileConfig.column;
-
-    let anredezeileConfig: AnredezeileConfig | undefined;
-    if (opts?.forceAutoAnredezeile) {
-      // Musterdatei enthält bewusst keine Anredezeile-Spalte -> immer automatisch generieren.
-      anredezeileConfig = { mode: "auto", template: "liebe-vorname-nachname" };
-    } else if (anredezeileUntouched && guessedColumn) {
-      anredezeileConfig = { mode: "column", column: guessedColumn };
-    }
-
     update({
-      ...(anredezeileConfig ? { anredezeileConfig } : {}),
       csvFile: file,
       csvHeaders: headers,
       csvRows: rows,
       mapping: guessMapping(headers),
+      anredezeileConfig: opts?.forceAutoTemplate
+        ? { mode: "auto", template: opts.forceAutoTemplate }
+        : guessedColumn
+          ? { mode: "column", column: guessedColumn }
+          : { mode: "auto", template: "liebe-vorname" },
     });
   }
 
@@ -74,7 +69,8 @@ export default function StepAddresses({ state, update }: StepProps) {
       const file = new File([buf], SAMPLE_CSV_NAME, { type: "text/csv" });
       const text = decodeCsvBytes(buf);
       const { headers, rows } = parseCsv(text);
-      applyParsedCsv(file, headers, rows, { forceAutoAnredezeile: true });
+      // Musterdatei enthält bewusst keine Anredezeile-Spalte -> immer automatisch generieren.
+      applyParsedCsv(file, headers, rows, { forceAutoTemplate: "liebe-vorname-nachname" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Musterdatei konnte nicht geladen werden.");
     } finally {
@@ -100,7 +96,7 @@ export default function StepAddresses({ state, update }: StepProps) {
         <h2 className="mb-1 text-lg font-semibold">Adressliste (CSV)</h2>
         <p className="text-sm text-slate-500">
           Lade die CSV-Datei mit den Empfängerdaten hoch und ordne die Spalten den benötigten
-          Feldern zu. Die Briefanredezeile stellst du in Schritt 2 („Anschreiben“) ein.
+          Feldern zu.
         </p>
       </div>
 
@@ -152,6 +148,63 @@ export default function StepAddresses({ state, update }: StepProps) {
                 <p className="mt-0.5 text-xs text-slate-400">{field.hint}</p>
               </div>
             ))}
+          </div>
+
+          <div className="rounded-lg border border-slate-200 p-4">
+            <label className="mb-2 block text-sm font-medium">Briefanredezeile</label>
+            <div className="mb-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => update({ anredezeileConfig: { mode: "column", column: state.csvHeaders[0] ?? "" } })}
+                className={`rounded-lg border px-3 py-1.5 text-sm ${
+                  state.anredezeileConfig.mode === "column"
+                    ? "border-sky-600 bg-sky-600 text-white"
+                    : "border-slate-300 bg-white hover:bg-slate-100"
+                }`}
+              >
+                Aus CSV-Spalte
+              </button>
+              <button
+                type="button"
+                onClick={() => update({ anredezeileConfig: { mode: "auto", template: "liebe-vorname" } })}
+                className={`rounded-lg border px-3 py-1.5 text-sm ${
+                  state.anredezeileConfig.mode === "auto"
+                    ? "border-sky-600 bg-sky-600 text-white"
+                    : "border-slate-300 bg-white hover:bg-slate-100"
+                }`}
+              >
+                Automatisch generieren
+              </button>
+            </div>
+
+            {state.anredezeileConfig.mode === "column" ? (
+              <select
+                value={state.anredezeileConfig.column}
+                onChange={(e) => update({ anredezeileConfig: { mode: "column", column: e.target.value } })}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-1/2"
+              >
+                <option value="">— Spalte wählen —</option>
+                {state.csvHeaders.map((h) => (
+                  <option key={h} value={h}>
+                    {h}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={state.anredezeileConfig.template}
+                onChange={(e) =>
+                  update({ anredezeileConfig: { mode: "auto", template: e.target.value as AnredeTemplateId } })
+                }
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm sm:w-1/2"
+              >
+                {ANREDE_TEMPLATES.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {mappingError && <p className="text-sm text-amber-600">{mappingError}</p>}
