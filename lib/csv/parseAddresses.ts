@@ -88,23 +88,39 @@ export function parseCsv(text: string): ParsedCsv {
   return { headers, rows };
 }
 
+/** Normalisiert einen Spaltennamen für den Best-Effort-Abgleich (Umlaute/ß einrechnen, Rest verwerfen). */
+function normalizeHeader(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/ß/g, "ss")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/[^a-z0-9]/g, "");
+}
+
 /** Versucht Spaltennamen automatisch den einfachen Feldern zuzuordnen (Best-Effort, editierbar in der UI). */
 export function guessMapping(headers: string[]): ColumnMapping {
-  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const table: Record<SimpleField, string[]> = {
     vorname: ["vorname", "firstname", "givenname"],
     nachname: ["nachname", "name", "lastname", "surname", "familyname"],
-    strasse: ["strasse", "straße", "street", "adresse1"],
+    strasse: ["strasse", "strassehausnummer", "street", "adresse1"],
     plz: ["plz", "postleitzahl", "zip", "zipcode", "postcode"],
     ort: ["ort", "stadt", "city", "town"],
     freischaltcode: ["freischaltcode", "code", "zugangscode", "aktivierungscode"],
   };
+  // Spaltennamen, die exakt den eigenen Feld-Labels entsprechen (z.B. "Straße + Hausnummer"),
+  // sollen immer automatisch erkannt werden - unabhängig von der festen Kandidatenliste oben.
+  const labelByField = Object.fromEntries(
+    SIMPLE_FIELDS.map((f) => [f.key, normalizeHeader(f.label)])
+  ) as Record<SimpleField, string>;
+
   const mapping: ColumnMapping = {};
   for (const header of headers) {
-    const n = normalize(header);
+    const n = normalizeHeader(header);
     for (const [field, candidates] of Object.entries(table) as [SimpleField, string[]][]) {
       if (mapping[field]) continue;
-      if (candidates.includes(n)) mapping[field] = header;
+      if (candidates.includes(n) || n === labelByField[field]) mapping[field] = header;
     }
   }
   return mapping;
@@ -112,9 +128,8 @@ export function guessMapping(headers: string[]): ColumnMapping {
 
 /** Rät eine passende Spalte für eine (optionale) fertige Anredezeile, falls vorhanden. */
 export function guessAnredezeileColumn(headers: string[]): string | undefined {
-  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const candidates = ["anredezeile", "briefanrede", "anredetext", "salutation"];
-  return headers.find((h) => candidates.includes(normalize(h)));
+  return headers.find((h) => candidates.includes(normalizeHeader(h)));
 }
 
 export function applyMapping(

@@ -8,13 +8,44 @@ import {
   guessAnredezeileColumn,
   guessMapping,
   parseCsv,
+  type AnredezeileConfig,
   type Recipient,
 } from "@/lib/csv/parseAddresses";
 import FileUploadButton from "./FileUploadButton";
 import type { StepProps } from "./wizardTypes";
 
+const SAMPLE_CSV_PATH = "/sample-data/Anschreiben_Muster_2DS.csv";
+const SAMPLE_CSV_NAME = "Anschreiben_Muster_2DS.csv";
+
 export default function StepAddresses({ state, update }: StepProps) {
   const [error, setError] = useState<string | null>(null);
+  const [loadingSample, setLoadingSample] = useState(false);
+
+  function applyParsedCsv(
+    file: File,
+    headers: string[],
+    rows: Record<string, string>[],
+    opts?: { forceAutoAnredezeile?: boolean }
+  ) {
+    const guessedColumn = guessAnredezeileColumn(headers);
+    const anredezeileUntouched = state.anredezeileConfig.mode === "column" && !state.anredezeileConfig.column;
+
+    let anredezeileConfig: AnredezeileConfig | undefined;
+    if (opts?.forceAutoAnredezeile) {
+      // Musterdatei enthält bewusst keine Anredezeile-Spalte -> immer automatisch generieren.
+      anredezeileConfig = { mode: "auto", template: "liebe-vorname-nachname" };
+    } else if (anredezeileUntouched && guessedColumn) {
+      anredezeileConfig = { mode: "column", column: guessedColumn };
+    }
+
+    update({
+      ...(anredezeileConfig ? { anredezeileConfig } : {}),
+      csvFile: file,
+      csvHeaders: headers,
+      csvRows: rows,
+      mapping: guessMapping(headers),
+    });
+  }
 
   async function handleFile(file: File | null) {
     setError(null);
@@ -26,22 +57,28 @@ export default function StepAddresses({ state, update }: StepProps) {
       const text = decodeCsvBytes(new Uint8Array(await file.arrayBuffer()));
       const { headers, rows } = parseCsv(text);
       if (headers.length === 0) throw new Error("Konnte keine Spaltenüberschriften finden.");
-      const guessedColumn = guessAnredezeileColumn(headers);
-      // Briefanredezeile-Einstellung (Schritt 2) nur automatisch befüllen, wenn der Nutzer
-      // dort noch nichts ausgewählt hat - sonst nicht die bewusste Wahl überschreiben.
-      const anredezeileUntouched = state.anredezeileConfig.mode === "column" && !state.anredezeileConfig.column;
-      update({
-        csvFile: file,
-        csvHeaders: headers,
-        csvRows: rows,
-        mapping: guessMapping(headers),
-        ...(anredezeileUntouched && guessedColumn
-          ? { anredezeileConfig: { mode: "column" as const, column: guessedColumn } }
-          : {}),
-      });
+      applyParsedCsv(file, headers, rows);
     } catch (e) {
       setError(e instanceof Error ? e.message : "CSV konnte nicht gelesen werden.");
       update({ csvFile: null, csvHeaders: [], csvRows: [], mapping: {} });
+    }
+  }
+
+  async function handleUseSample() {
+    setError(null);
+    setLoadingSample(true);
+    try {
+      const res = await fetch(SAMPLE_CSV_PATH);
+      if (!res.ok) throw new Error("Musterdatei konnte nicht geladen werden.");
+      const buf = new Uint8Array(await res.arrayBuffer());
+      const file = new File([buf], SAMPLE_CSV_NAME, { type: "text/csv" });
+      const text = decodeCsvBytes(buf);
+      const { headers, rows } = parseCsv(text);
+      applyParsedCsv(file, headers, rows, { forceAutoAnredezeile: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Musterdatei konnte nicht geladen werden.");
+    } finally {
+      setLoadingSample(false);
     }
   }
 
@@ -55,6 +92,8 @@ export default function StepAddresses({ state, update }: StepProps) {
     }
   }
 
+  const usingSample = state.csvFile?.name === SAMPLE_CSV_NAME;
+
   return (
     <div className="space-y-6">
       <div>
@@ -65,10 +104,23 @@ export default function StepAddresses({ state, update }: StepProps) {
         </p>
       </div>
 
-      <FileUploadButton accept=".csv,text/csv" onChange={handleFile} label="CSV-Datei auswählen" />
+      <div className="flex flex-wrap items-center gap-3">
+        <FileUploadButton accept=".csv,text/csv" onChange={handleFile} label="CSV-Datei auswählen" />
+        <span className="text-xs text-slate-400">oder</span>
+        <button
+          type="button"
+          onClick={handleUseSample}
+          disabled={loadingSample}
+          className="rounded-lg border border-dashed border-sky-400 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+        >
+          {loadingSample ? "Lade Musterdatei…" : "Musterdatei verwenden (2 Testdatensätze)"}
+        </button>
+      </div>
+
       {state.csvFile && !error && (
         <p className="text-sm text-slate-700">
           Ausgewählt: <span className="font-medium">{state.csvFile.name}</span>
+          {usingSample && <span className="ml-1 text-slate-400">(eingebaute Musterdatei)</span>}
         </p>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
