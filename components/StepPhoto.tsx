@@ -33,7 +33,7 @@ export default function StepPhoto({ state, update }: StepProps) {
           type="button"
           onClick={() => update({ photoMode: "upload" })}
           className={`flex-1 rounded-lg border p-3 text-left text-sm ${
-            state.photoMode === "upload" ? "border-slate-900 bg-slate-900/5" : "border-slate-300"
+            state.photoMode === "upload" ? "border-sky-600 bg-sky-50" : "border-slate-300"
           }`}
         >
           <div className="font-medium">Eigenes Foto hochladen</div>
@@ -42,7 +42,7 @@ export default function StepPhoto({ state, update }: StepProps) {
           type="button"
           onClick={() => update({ photoMode: "stock" })}
           className={`flex-1 rounded-lg border p-3 text-left text-sm ${
-            state.photoMode === "stock" ? "border-slate-900 bg-slate-900/5" : "border-slate-300"
+            state.photoMode === "stock" ? "border-sky-600 bg-sky-50" : "border-slate-300"
           }`}
         >
           <div className="font-medium">Standardmotiv wählen</div>
@@ -80,7 +80,7 @@ export default function StepPhoto({ state, update }: StepProps) {
               type="button"
               onClick={() => update({ stockPhotoId: p.id })}
               className={`overflow-hidden rounded-lg border-2 text-left ${
-                state.stockPhotoId === p.id ? "border-slate-900" : "border-transparent"
+                state.stockPhotoId === p.id ? "border-sky-600" : "border-transparent"
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

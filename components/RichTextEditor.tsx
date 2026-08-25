@@ -39,7 +39,7 @@ export default function RichTextEditor({ value, onChange, minHeight = "220px", m
 
   const btnClass = (active: boolean) =>
     `rounded border px-2 py-1 text-sm ${
-      active ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white hover:bg-slate-100"
+      active ? "border-sky-600 bg-sky-600 text-white" : "border-slate-300 bg-white hover:bg-slate-100"
     }`;
 
   return (

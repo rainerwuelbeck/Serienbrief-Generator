@@ -150,7 +150,7 @@ export default function Wizard() {
             onClick={() => setStep(s.id)}
             className={`flex-1 rounded-lg border px-3 py-2 text-center text-sm ${
               step === s.id
-                ? "border-slate-900 bg-slate-900 text-white"
+                ? "border-sky-600 bg-sky-600 text-white"
                 : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
             }`}
           >
@@ -192,7 +192,7 @@ export default function Wizard() {
           <button
             type="button"
             onClick={() => setStep((s) => Math.min(STEPS.length, s + 1))}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
           >
             Weiter
           </button>
@@ -201,7 +201,7 @@ export default function Wizard() {
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
           >
             {submitting ? "Erstelle PDF…" : "Serienbriefe erstellen"}
           </button>

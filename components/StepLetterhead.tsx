@@ -53,7 +53,7 @@ export default function StepLetterhead({ state, update }: StepProps) {
           type="button"
           onClick={() => update({ letterheadMode: "image" })}
           className={`flex-1 rounded-lg border p-3 text-left text-sm ${
-            state.letterheadMode === "image" ? "border-slate-900 bg-slate-900/5" : "border-slate-300"
+            state.letterheadMode === "image" ? "border-sky-600 bg-sky-50" : "border-slate-300"
           }`}
         >
           <div className="font-medium">Briefbogen hochladen</div>
@@ -63,7 +63,7 @@ export default function StepLetterhead({ state, update }: StepProps) {
           type="button"
           onClick={() => update({ letterheadMode: "logo" })}
           className={`flex-1 rounded-lg border p-3 text-left text-sm ${
-            state.letterheadMode === "logo" ? "border-slate-900 bg-slate-900/5" : "border-slate-300"
+            state.letterheadMode === "logo" ? "border-sky-600 bg-sky-50" : "border-slate-300"
           }`}
         >
           <div className="font-medium">Kein Briefbogen — nur Logo</div>
@@ -127,7 +127,7 @@ export default function StepLetterhead({ state, update }: StepProps) {
                   onClick={() => update({ logoPosition: p.id })}
                   className={`rounded-lg border px-3 py-1.5 text-sm ${
                     state.logoPosition === p.id
-                      ? "border-slate-900 bg-slate-900 text-white"
+                      ? "border-sky-600 bg-sky-600 text-white"
                       : "border-slate-300 bg-white hover:bg-slate-100"
                   }`}
                 >
