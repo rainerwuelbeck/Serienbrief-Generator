@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# lokale Testläufe gegen andere Umgebungen (siehe scripts/test-generate.mjs, TEST_OUT_SUFFIX)
+test-data/output-*-prod.pdf

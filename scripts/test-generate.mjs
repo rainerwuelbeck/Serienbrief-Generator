@@ -1,14 +1,19 @@
-// End-to-End-Test gegen den laufenden Dev-Server: simuliert genau den Request,
-// den der Wizard beim Klick auf "Serienbriefe erstellen" absetzt.
+// End-to-End-Test: simuliert genau den Request, den der Wizard beim Klick auf
+// "Serienbriefe erstellen" absetzt. Läuft standardmäßig gegen den lokalen
+// Dev-Server; für einen Test gegen eine andere Umgebung (z.B. die
+// Vercel-Produktion) TEST_BASE_URL / TEST_PASSWORD setzen, z.B.:
+//   TEST_BASE_URL=https://serienbrief-generator.vercel.app TEST_PASSWORD=... node scripts/test-generate.mjs
 import fs from "node:fs";
 
-const BASE = "http://localhost:3000";
+const BASE = process.env.TEST_BASE_URL ?? "http://localhost:3000";
+const PASSWORD = process.env.TEST_PASSWORD ?? "changeme";
+const OUT_SUFFIX = process.env.TEST_OUT_SUFFIX ?? "";
 
 async function login() {
   const res = await fetch(`${BASE}/api/auth`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password: "changeme" }),
+    body: JSON.stringify({ password: PASSWORD }),
   });
   if (!res.ok) throw new Error("Login fehlgeschlagen: " + res.status);
   const setCookie = res.headers.get("set-cookie");
@@ -87,7 +92,7 @@ async function run(mode) {
     return;
   }
   const buf = Buffer.from(await res.arrayBuffer());
-  const outPath = `test-data/output-${mode}.pdf`;
+  const outPath = `test-data/output-${mode}${OUT_SUFFIX}.pdf`;
   fs.writeFileSync(outPath, buf);
   console.log("wrote", outPath, buf.length, "bytes");
 }
