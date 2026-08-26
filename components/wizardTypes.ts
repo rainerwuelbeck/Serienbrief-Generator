@@ -67,7 +67,7 @@ export const initialWizardState: WizardState = {
   bodyHtml: initialStandardText.bodyHtml,
   showHeadline: initialStandardText.defaultHeadline !== "",
   headlineText: initialStandardText.defaultHeadline,
-  showDate: false,
+  showDate: true,
   dateMonthOffset: 0,
   duSieMode: initialStandardText.duSie,
   fontId: DEFAULT_FONT_ID,
