@@ -31,7 +31,27 @@ export default function StepText({ state, update }: StepProps) {
           Der Text bleibt danach frei bearbeitbar — Formatierung, Platzhalter usw.
         </p>
         <div className="flex flex-wrap gap-2">
-          {STANDARD_TEXTS.map((t) => (
+          {STANDARD_TEXTS.slice(0, 2).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => {
+                const std = getStandardText(t.id);
+                update({
+                  bodyHtml: std.bodyHtml,
+                  duSieMode: std.duSie,
+                  showHeadline: std.defaultHeadline !== "",
+                  headlineText: std.defaultHeadline,
+                });
+              }}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-100"
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {STANDARD_TEXTS.slice(2, 4).map((t) => (
             <button
               key={t.id}
               type="button"

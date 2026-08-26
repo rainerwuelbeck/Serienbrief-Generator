@@ -67,7 +67,7 @@ export const initialWizardState: WizardState = {
   dateMonthOffset: 0,
   duSieMode: initialStandardText.duSie,
   fontId: DEFAULT_FONT_ID,
-  fontSizePt: 11,
+  fontSizePt: 10.5,
 
   photoMode: "stock",
   photoFile: null,

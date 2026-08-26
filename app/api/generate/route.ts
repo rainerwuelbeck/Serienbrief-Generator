@@ -160,7 +160,7 @@ export async function POST(req: Request) {
   const beratungslinkUrl = buildBeratungslinkUrl(beratungslinkSubdomain, beratungslinkDomain);
 
   const fontId = String(form.get("fontId") ?? "carlito");
-  const fontSizePt = Number(form.get("fontSizePt") ?? 11) || 11;
+  const fontSizePt = Number(form.get("fontSizePt") ?? 10.5) || 10.5;
 
   const csvFile = form.get("csvFile");
   const mappingRaw = form.get("mapping");
