@@ -3,7 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { buildAbsenderzeile } from "@/lib/absenderzeile";
 import { buildBeratungslinkUrl } from "@/lib/beratungslink";
-import { applyMapping, decodeCsvBytes, parseCsv, type AnredezeileConfig, type ColumnMapping } from "@/lib/csv/parseAddresses";
+import {
+  applyMapping,
+  decodeCsvBytes,
+  MAX_RECIPIENTS,
+  parseCsv,
+  type AnredezeileConfig,
+  type ColumnMapping,
+} from "@/lib/csv/parseAddresses";
 import { buildFontFaceCss } from "@/lib/fonts";
 import { buildFullHtml, type DuSieMode, type LetterheadConfig } from "@/lib/pdf/buildHtml";
 import { renderFirstPdfPageToPng } from "@/lib/pdf/letterheadToImage";
@@ -14,7 +21,6 @@ import { STOCK_PHOTOS } from "@/lib/stockPhotos";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_RECIPIENTS = 300;
 const SUPPORTED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 

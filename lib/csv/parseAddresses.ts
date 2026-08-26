@@ -1,6 +1,15 @@
 import Papa from "papaparse";
 
 /**
+ * Maximale Empfängerzahl pro Lauf - begrenzt durch das Zeitlimit der
+ * Serverless-Funktion (siehe app/api/generate/route.ts, maxDuration). Als
+ * gemeinsame Konstante hier definiert, damit Client (StepAddresses.tsx,
+ * Warnung + Aufteilen-Funktion) und Server (route.ts, harte Prüfung)
+ * garantiert denselben Wert verwenden.
+ */
+export const MAX_RECIPIENTS = 300;
+
+/**
  * Dekodiert eine CSV-Datei robust zu Text - unabhängig davon, ob sie als
  * UTF-8 (mit/ohne BOM) oder als Windows-1252/ANSI gespeichert wurde (typisch
  * für "CSV (Trennzeichen-getrennt)"-Exporte aus Excel auf einem deutschen
@@ -86,6 +95,24 @@ export function parseCsv(text: string): ParsedCsv {
   const headers = result.meta.fields ?? [];
   const rows = (result.data ?? []).filter((r) => Object.values(r).some((v) => (v ?? "").trim() !== ""));
   return { headers, rows };
+}
+
+/**
+ * Teilt eine zu lange Adressliste in mehrere kleinere CSV-Dateien mit je
+ * maximal `chunkSize` Zeilen auf (gleiche Kopfzeile je Teil) - für den Fall,
+ * dass eine Liste MAX_RECIPIENTS überschreitet und der Nutzer sie in mehreren
+ * Läufen abarbeiten möchte (siehe StepAddresses.tsx).
+ */
+export function splitCsvIntoChunks(
+  headers: string[],
+  rows: Record<string, string>[],
+  chunkSize: number = MAX_RECIPIENTS
+): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    chunks.push(Papa.unparse({ fields: headers, data: rows.slice(i, i + chunkSize) }));
+  }
+  return chunks;
 }
 
 /** Normalisiert einen Spaltennamen für den Best-Effort-Abgleich (Umlaute/ß einrechnen, Rest verwerfen). */
