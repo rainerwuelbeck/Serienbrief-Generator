@@ -288,7 +288,7 @@ export function buildFullHtml(
 
   .absenderzeile {
     position: absolute;
-    top: 45mm;
+    top: 60mm;
     left: 25mm;
     right: 20mm;
     font-size: 7pt;
@@ -299,7 +299,7 @@ export function buildFullHtml(
   }
   .address-block {
     position: absolute;
-    top: 50mm;
+    top: 65mm;
     left: 25mm;
     width: 80mm;
     font-size: ${config.fontSizePt + 1}pt;
