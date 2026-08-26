@@ -22,6 +22,10 @@ export type LetterConfig = {
   headlineText: string; // freier Text, Zeilenumbrüche werden übernommen
   absenderzeile: string; // kleine Zeile über dem Adressblock, z.B. "Firma GmbH - Ansprechpartner - Straße - PLZ Ort"
   unternehmensname: string; // für den {{Unternehmensname}}-Platzhalter im Brieftext
+  ansprechpartnerAnrede: string; // "Herr" oder "Frau", für {{AnsprechpartnerAnrede}}
+  ansprechpartnerName: string; // Vor- und Nachname des bAV-Ansprechpartners, für {{AnsprechpartnerName}}
+  ansprechpartnerTelefon: string; // für {{AnsprechpartnerTelefon}}
+  ansprechpartnerEmail: string; // für {{AnsprechpartnerEmail}}
   showDate: boolean; // "[Monat] [Jahr]" rechts zwischen Adressblock und Brieftext
   dateMonthOffset: number; // 0 = aktueller Monat, 1 = nächster, 2 = übernächster
   letterhead: LetterheadConfig;
@@ -40,14 +44,26 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
+export type MergeCampaignFields = {
+  unternehmensname: string;
+  ansprechpartnerAnrede: string;
+  ansprechpartnerName: string;
+  ansprechpartnerTelefon: string;
+  ansprechpartnerEmail: string;
+};
+
 /** Ersetzt {{Feld}}-Platzhalter im HTML durch die (escaped) Werte des Empfängers bzw. der Kampagne. */
-export function applyMergeFields(html: string, recipient: Recipient, unternehmensname: string): string {
+export function applyMergeFields(html: string, recipient: Recipient, campaign: MergeCampaignFields): string {
   return html
     .replace(/\{\{\s*Vorname\s*\}\}/g, escapeHtml(recipient.vorname))
     .replace(/\{\{\s*Nachname\s*\}\}/g, escapeHtml(recipient.nachname))
     .replace(/\{\{\s*Anredezeile\s*\}\}/g, escapeHtml(recipient.anredezeile))
     .replace(/\{\{\s*Freischaltcode\s*\}\}/g, escapeHtml(recipient.freischaltcode))
-    .replace(/\{\{\s*Unternehmensname\s*\}\}/g, escapeHtml(unternehmensname));
+    .replace(/\{\{\s*Unternehmensname\s*\}\}/g, escapeHtml(campaign.unternehmensname))
+    .replace(/\{\{\s*AnsprechpartnerAnrede\s*\}\}/g, escapeHtml(campaign.ansprechpartnerAnrede))
+    .replace(/\{\{\s*AnsprechpartnerName\s*\}\}/g, escapeHtml(campaign.ansprechpartnerName))
+    .replace(/\{\{\s*AnsprechpartnerTelefon\s*\}\}/g, escapeHtml(campaign.ansprechpartnerTelefon))
+    .replace(/\{\{\s*AnsprechpartnerEmail\s*\}\}/g, escapeHtml(campaign.ansprechpartnerEmail));
 }
 
 /** "AB12CD34" -> "AB12 CD34" - besser lesbar, ohne den eigentlichen Wert zu verändern. */
@@ -112,7 +128,13 @@ function renderHeadline(config: LetterConfig): string {
 }
 
 function renderPage1(config: LetterConfig, recipient: Recipient, dateText: string): string {
-  const body = applyMergeFields(config.bodyHtml, recipient, config.unternehmensname);
+  const body = applyMergeFields(config.bodyHtml, recipient, {
+    unternehmensname: config.unternehmensname,
+    ansprechpartnerAnrede: config.ansprechpartnerAnrede,
+    ansprechpartnerName: config.ansprechpartnerName,
+    ansprechpartnerTelefon: config.ansprechpartnerTelefon,
+    ansprechpartnerEmail: config.ansprechpartnerEmail,
+  });
   const absenderzeile = config.absenderzeile.trim()
     ? `<div class="absenderzeile">${escapeHtml(config.absenderzeile)}</div>`
     : "";

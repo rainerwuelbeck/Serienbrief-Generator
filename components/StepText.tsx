@@ -11,6 +11,10 @@ const MERGE_FIELDS = [
   { token: "{{Nachname}}", label: "Nachname" },
   { token: "{{Freischaltcode}}", label: "Freischaltcode" },
   { token: "{{Unternehmensname}}", label: "Unternehmensname" },
+  { token: "{{AnsprechpartnerAnrede}}", label: "Ansprechpartner: Anrede" },
+  { token: "{{AnsprechpartnerName}}", label: "Ansprechpartner: Name" },
+  { token: "{{AnsprechpartnerTelefon}}", label: "Ansprechpartner: Telefon" },
+  { token: "{{AnsprechpartnerEmail}}", label: "Ansprechpartner: E-Mail" },
 ];
 
 /** "August 2026" für den angegebenen Monats-Offset (0 = aktueller Monat). */
@@ -103,6 +107,73 @@ export default function StepText({ state, update }: StepProps) {
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
         )}
+      </div>
+
+      <div className="border-t-2 border-sky-600 pt-6">
+        <h3 className="mb-1 text-sm font-semibold">Ansprechpartner bAV</h3>
+        <p className="mb-2 text-xs text-slate-500">
+          Wird über die Platzhalter unten in der Symbolleiste des Brieftext-Editors eingefügt
+          (bereits in allen vier Standardvorlagen enthalten).
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Anrede</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => update({ ansprechpartnerAnrede: "Frau" })}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
+                  state.ansprechpartnerAnrede === "Frau"
+                    ? "border-sky-600 bg-sky-600 text-white"
+                    : "border-slate-300 bg-white hover:bg-slate-100"
+                }`}
+              >
+                Frau
+              </button>
+              <button
+                type="button"
+                onClick={() => update({ ansprechpartnerAnrede: "Herr" })}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm ${
+                  state.ansprechpartnerAnrede === "Herr"
+                    ? "border-sky-600 bg-sky-600 text-white"
+                    : "border-slate-300 bg-white hover:bg-slate-100"
+                }`}
+              >
+                Herr
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Vorname und Nachname</label>
+            <input
+              type="text"
+              value={state.ansprechpartnerName}
+              onChange={(e) => update({ ansprechpartnerName: e.target.value })}
+              placeholder="Eva Mustermakler"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Telefonnummer</label>
+            <input
+              type="text"
+              value={state.ansprechpartnerTelefon}
+              onChange={(e) => update({ ansprechpartnerTelefon: e.target.value })}
+              placeholder="01234 – 567890"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">E-Mail</label>
+            <input
+              type="text"
+              value={state.ansprechpartnerEmail}
+              onChange={(e) => update({ ansprechpartnerEmail: e.target.value })}
+              placeholder="eva.mustermakler@makler.net"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
       </div>
 
       <div>

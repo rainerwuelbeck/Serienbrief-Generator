@@ -145,7 +145,7 @@ export default function StepLetterhead({ state, update }: StepProps) {
         </div>
       )}
 
-      <div className="border-t-2 border-[#F67E15] pt-6">
+      <div className="border-t-2 border-sky-600 pt-6">
         <h3 className="mb-1 text-sm font-semibold">Absenderzeile</h3>
         <p className="mb-2 text-xs text-slate-500">
           Kleine Zeile über dem Adressfeld, z.B. für die Fensterlasche des Umschlags. Optional.
@@ -205,7 +205,7 @@ export default function StepLetterhead({ state, update }: StepProps) {
         </p>
       </div>
 
-      <div className="border-t-2 border-[#F67E15] pt-6">
+      <div className="border-t-2 border-sky-600 pt-6">
         <h3 className="mb-1 text-sm font-semibold">Design-Farbe</h3>
         <p className="mb-2 text-xs text-slate-500">
           Wird für die Überschrift auf Seite 1 sowie Nummerierungen, Striche und Linien auf Seite 2

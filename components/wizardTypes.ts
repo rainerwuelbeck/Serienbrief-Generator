@@ -31,6 +31,10 @@ export type WizardState = {
   duSieMode: DuSieMode;
   fontId: string;
   fontSizePt: number;
+  ansprechpartnerAnrede: "Herr" | "Frau";
+  ansprechpartnerName: string;
+  ansprechpartnerTelefon: string;
+  ansprechpartnerEmail: string;
 
   // Schritt 3: Seite 2 (Headerfoto + Beratungslink)
   photoMode: "upload" | "stock";
@@ -68,6 +72,10 @@ export const initialWizardState: WizardState = {
   duSieMode: initialStandardText.duSie,
   fontId: DEFAULT_FONT_ID,
   fontSizePt: 10.5,
+  ansprechpartnerAnrede: "Frau",
+  ansprechpartnerName: "",
+  ansprechpartnerTelefon: "",
+  ansprechpartnerEmail: "",
 
   photoMode: "stock",
   photoFile: null,

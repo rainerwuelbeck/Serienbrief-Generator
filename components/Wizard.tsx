@@ -41,6 +41,10 @@ function buildFormData(state: WizardState): FormData {
   fd.set("duSieMode", state.duSieMode);
   fd.set("fontId", state.fontId);
   fd.set("fontSizePt", String(state.fontSizePt));
+  fd.set("ansprechpartnerAnrede", state.ansprechpartnerAnrede);
+  fd.set("ansprechpartnerName", state.ansprechpartnerName);
+  fd.set("ansprechpartnerTelefon", state.ansprechpartnerTelefon);
+  fd.set("ansprechpartnerEmail", state.ansprechpartnerEmail);
 
   fd.set("photoMode", state.photoMode);
   if (state.photoMode === "upload" && state.photoFile) fd.set("photoFile", state.photoFile);
@@ -86,6 +90,14 @@ export default function Wizard() {
     if (state.showHeadline && state.headlineText.trim() === "") {
       setStep(2);
       return "Bitte einen Text für die Überschrift eingeben oder sie deaktivieren (Schritt 2).";
+    }
+    const usesAnsprechpartner = /\{\{\s*Ansprechpartner(Name|Telefon|Email)\s*\}\}/.test(state.bodyHtml);
+    if (
+      usesAnsprechpartner &&
+      (!state.ansprechpartnerName.trim() || !state.ansprechpartnerTelefon.trim() || !state.ansprechpartnerEmail.trim())
+    ) {
+      setStep(2);
+      return "Der Brieftext verwendet die Ansprechpartner-Platzhalter - bitte Name, Telefonnummer und E-Mail des bAV-Ansprechpartners angeben (Schritt 2).";
     }
     if (state.photoMode === "upload" && !state.photoFile) {
       setStep(3);

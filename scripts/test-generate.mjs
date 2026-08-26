@@ -41,10 +41,14 @@ async function run(mode) {
 
   fd.set(
     "bodyHtml",
-    "<p>{{Anredezeile}}</p><p>Das ist ein Testtext von {{Unternehmensname}} für {{Vorname}} {{Nachname}}.</p><p>Ihre Geschäftsführung</p>"
+    "<p>{{Anredezeile}}</p><p>Das ist ein Testtext von {{Unternehmensname}} für {{Vorname}} {{Nachname}}.</p><p>Bei Fragen erreichen Sie {{AnsprechpartnerAnrede}} {{AnsprechpartnerName}} unter {{AnsprechpartnerTelefon}} oder {{AnsprechpartnerEmail}}.</p><p>Ihre Geschäftsführung</p>"
   );
   fd.set("fontId", "carlito");
   fd.set("fontSizePt", "11");
+  fd.set("ansprechpartnerAnrede", "Frau");
+  fd.set("ansprechpartnerName", "Eva Testmakler");
+  fd.set("ansprechpartnerTelefon", "0123 456789");
+  fd.set("ansprechpartnerEmail", "eva.test@makler.net");
   fd.set("designColor", "#1E6FA6");
   fd.set("showHeadline", "true");
   fd.set("headlineText", "Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!");

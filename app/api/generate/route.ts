@@ -162,6 +162,18 @@ export async function POST(req: Request) {
   const fontId = String(form.get("fontId") ?? "carlito");
   const fontSizePt = Number(form.get("fontSizePt") ?? 10.5) || 10.5;
 
+  const ansprechpartnerAnredeRaw = String(form.get("ansprechpartnerAnrede") ?? "Frau");
+  const ansprechpartnerAnrede = ansprechpartnerAnredeRaw === "Herr" ? "Herr" : "Frau";
+  const ansprechpartnerName = String(form.get("ansprechpartnerName") ?? "");
+  const ansprechpartnerTelefon = String(form.get("ansprechpartnerTelefon") ?? "");
+  const ansprechpartnerEmail = String(form.get("ansprechpartnerEmail") ?? "");
+  const usesAnsprechpartner = /\{\{\s*Ansprechpartner(Name|Telefon|Email)\s*\}\}/.test(bodyHtml);
+  if (usesAnsprechpartner && (!ansprechpartnerName.trim() || !ansprechpartnerTelefon.trim() || !ansprechpartnerEmail.trim())) {
+    return err(
+      "Der Brieftext verwendet die Ansprechpartner-Platzhalter - bitte Name, Telefonnummer und E-Mail des bAV-Ansprechpartners angeben."
+    );
+  }
+
   const csvFile = form.get("csvFile");
   const mappingRaw = form.get("mapping");
   const anredezeileConfigRaw = form.get("anredezeileConfig");
@@ -222,6 +234,10 @@ export async function POST(req: Request) {
       headlineText,
       absenderzeile,
       unternehmensname: absenderUnternehmensname,
+      ansprechpartnerAnrede,
+      ansprechpartnerName,
+      ansprechpartnerTelefon,
+      ansprechpartnerEmail,
       showDate,
       dateMonthOffset,
       letterhead,

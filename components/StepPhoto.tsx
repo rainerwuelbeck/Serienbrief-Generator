@@ -96,7 +96,7 @@ export default function StepPhoto({ state, update }: StepProps) {
         </div>
       )}
 
-      <div className="border-t-2 border-[#F67E15] pt-6">
+      <div className="border-t-2 border-sky-600 pt-6">
         <label className="mb-1 block text-sm font-medium">Beratungslink-URL</label>
         <p className="mb-2 text-xs text-slate-500">
           Wird auf Seite 2 als Link angezeigt und als QR-Code eingebettet. Nur die Subdomain
