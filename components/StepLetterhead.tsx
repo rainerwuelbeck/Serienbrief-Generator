@@ -88,6 +88,11 @@ export default function StepLetterhead({ state, update }: StepProps) {
             enthalten — die App setzt die Absenderzeile (siehe unten) selbst darüber, sonst
             überlagern sich beide.
           </p>
+          <p className="text-xs text-slate-500">
+            Ein Briefbogen als PDF wird nicht komprimiert — hier lohnt es sich, auf eine schlanke
+            PDF-Datei zu achten (kein hochauflösendes Hintergrundbild o.ä.), damit 4 MB nicht
+            überschritten werden.
+          </p>
           {state.letterheadFile && (
             <p className="text-sm text-slate-700">
               Ausgewählt: <span className="font-medium">{state.letterheadFile.name}</span>
