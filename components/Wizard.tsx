@@ -5,7 +5,9 @@ import StepLetterhead from "./StepLetterhead";
 import StepText from "./StepText";
 import StepPhoto from "./StepPhoto";
 import StepAddresses from "./StepAddresses";
+import FileUploadButton from "./FileUploadButton";
 import { applyMapping } from "@/lib/csv/parseAddresses";
+import { buildConfigExport, parseConfigImport } from "@/lib/configExport";
 import { initialWizardState, type WizardState } from "./wizardTypes";
 
 const STEPS = [
@@ -65,9 +67,45 @@ export default function Wizard() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
+  const [configMessage, setConfigMessage] = useState<string | null>(null);
 
   function update(patch: Partial<WizardState>) {
     setState((s) => ({ ...s, ...patch }));
+  }
+
+  async function handleExportConfig() {
+    setConfigMessage(null);
+    try {
+      const json = await buildConfigExport(state);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const nameHint = state.absenderUnternehmensname.trim() || "Konfiguration";
+      a.download = `Serienbrief-${nameHint} - ${dateStamp}.json`.replace(/[\\/:*?"<>|]/g, "-");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setConfigMessage("Konfiguration wurde als Datei heruntergeladen.");
+    } catch {
+      setConfigMessage("Konfiguration konnte nicht gespeichert werden.");
+    }
+  }
+
+  async function handleImportConfig(file: File | null) {
+    if (!file) return;
+    setConfigMessage(null);
+    try {
+      const text = await file.text();
+      const patch = parseConfigImport(text);
+      update(patch);
+      setConfigMessage("Konfiguration wurde geladen. Adressliste (Schritt 4) bitte separat hochladen.");
+      setStep(1);
+    } catch (e) {
+      setConfigMessage(e instanceof Error ? e.message : "Konfiguration konnte nicht geladen werden.");
+    }
   }
 
   function validate(): string | null {
@@ -156,7 +194,24 @@ export default function Wizard() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold">Serienbrief-Generator / Mitarbeiteranschreiben</h1>
+      <h1 className="mb-3 text-2xl font-semibold">Serienbrief-Generator / Mitarbeiteranschreiben</h1>
+
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={handleExportConfig}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+        >
+          Konfiguration speichern
+        </button>
+        <FileUploadButton accept=".json,application/json" onChange={handleImportConfig} label="Konfiguration laden" />
+        <span className="text-xs text-slate-400">
+          Sichert/lädt Briefbogen, Texte, Design und Ansprechpartner als Datei - ohne Adressliste.
+        </span>
+      </div>
+      {configMessage && (
+        <p className="mb-4 text-sm text-slate-600">{configMessage}</p>
+      )}
 
       <div className="mb-6 flex gap-2">
         {STEPS.map((s) => (
