@@ -45,28 +45,41 @@ Puppeteer/Chromium in einem Rutsch zu einer kombinierten PDF-Datei, die direkt
 heruntergeladen wird. Der QR-Code wird einmalig pro Lauf serverseitig erzeugt
 (`lib/qr.ts`, Paket `qrcode`).
 
-## Deployment auf Vercel
+## Deployment
 
-1. Repo zu GitHub pushen (oder `vercel` CLI direkt im Projektordner nutzen).
-2. Auf [vercel.com](https://vercel.com) importieren.
-3. Environment Variable `APP_PASSWORD` im Vercel-Projekt setzen.
-4. Deployen.
+Läuft produktiv als selbstgehostete App auf einem eigenen Server (Hostinger
+VPS, aktuell unter `https://briefgenerator.dwerk.net`) — kein Vercel mehr.
 
-Die Chromium-Instanz für die PDF-Erzeugung läuft dort automatisch über
-`@sparticuz/chromium` (siehe `lib/pdf/render.ts`), lokal wird stattdessen das
-normale `puppeteer`-Paket mit gebündeltem Chromium verwendet — kein manueller
-Umschalter nötig.
+- **Prozess**: `next start` (gebaut via `npm run build`) als systemd-Dienst
+  (`briefgenerator.service`), unter einem eigenen unprivilegierten
+  Systembenutzer, gehärtet (`ProtectSystem=strict`, `ProtectHome=true` usw.).
+- **Reverse Proxy**: nginx mit Let's-Encrypt-Zertifikat (certbot), davor
+  Cloudflare (nur Cloudflare-IPs dürfen den Server direkt erreichen).
+- **Deploy-Ablauf**: auf dem Server `git pull`, `npm install`, `npm run
+  build`, `systemctl restart briefgenerator.service`.
+- **Umgebungsvariablen** (`APP_PASSWORD` u.a.) liegen in einer root-only
+  lesbaren `EnvironmentFile` außerhalb des Repos, nicht in `.env`-Dateien.
+
+Die Chromium-Instanz für die PDF-Erzeugung läuft lokal wie serverseitig über
+das normale `puppeteer`-Paket mit gebündeltem Chromium (`lib/pdf/render.ts`)
+— mit `--no-sandbox`/`--disable-setuid-sandbox`/`--disable-crash-reporter`,
+nötig für den Betrieb unter systemd auf einem Linux-Server ohne
+unprivilegierte User-Namespaces. Auf Vercel/Lambda-artigen Plattformen
+würde stattdessen automatisch `@sparticuz/chromium` greifen (derselbe Code
+unterstützt das weiterhin, falls die App dort noch mal laufen soll) — kein
+manueller Umschalter nötig.
 
 ## Bekannte Grenzen
 
-- **Requestgröße**: Vercel begrenzt Serverless-Function-Requests auf ca.
-  4,5 MB. Bilduploads werden clientseitig automatisch verkleinert
-  (`lib/clientImage.ts`), trotzdem gilt: Briefbogen/Logo/Foto möglichst unter
-  2 MB halten.
+- **Requestgröße**: clientseitige Bild-Kompression (`lib/clientImage.ts`)
+  bleibt aktiv, ist auf dem eigenen Server aber kein hartes Limit mehr (war
+  ursprünglich wegen Vercels ca. 4,5-MB-Grenze für Serverless-Function-Requests
+  eingebaut). Trotzdem gilt: Briefbogen/Logo/Foto möglichst unter 2 MB halten.
 - **Empfängerzahl**: aktuell auf 300 pro Lauf begrenzt (`MAX_RECIPIENTS` in
-  `app/api/generate/route.ts`), wegen der Ausführungszeit einer einzelnen
-  Serverless-Function. Für größere Listen: in mehreren Läufen aufteilen, oder
-  `maxDuration`/Vercel-Plan erhöhen.
+  `lib/csv/parseAddresses.ts`). Der ursprüngliche Grund (Zeitlimit einer
+  einzelnen Vercel-Serverless-Function) entfällt auf dem eigenen Server -
+  Schritt 4 bietet bei größeren Listen eine "In Blöcke aufteilen"-Funktion an;
+  der Wert selbst kann bei Bedarf einfach angehoben werden.
 - **Word-Briefbögen (.docx)**: werden nicht automatisch konvertiert — bitte in
   Word einmal als PDF exportieren und das hochladen.
 - **Turbopack**: `dev`/`build` laufen bewusst mit `--webpack` statt dem
