@@ -28,7 +28,11 @@ async function getBrowser(): Promise<Browser> {
     // sandboxen und stürzt beim Start ab. Der Prozess läuft ohnehin als
     // eigener unprivilegierter Systembenutzer (siehe Deployment), das
     // kompensiert einen Teil der fehlenden Chrome-eigenen Sandbox.
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    // --disable-crash-reporter: der Crashpad-Handler versucht sonst, seine
+    // Datenbank unter $HOME abzulegen - unter systemd mit ProtectHome=true
+    // (siehe Deployment) ist das nicht beschreibbar, Chrome bricht sonst
+    // schon beim Start ab ("chrome_crashpad_handler: --database is required").
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-crash-reporter"],
   }) as unknown as Browser;
 }
 
