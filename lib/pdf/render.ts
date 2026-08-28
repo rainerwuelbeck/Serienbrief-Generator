@@ -21,7 +21,15 @@ async function getBrowser(): Promise<Browser> {
   }
 
   const puppeteer = (await import("puppeteer")).default;
-  return puppeteer.launch({ headless: true }) as unknown as Browser;
+  return puppeteer.launch({
+    headless: true,
+    // Nötig auf Linux-Servern ohne unprivilegierte User-Namespaces (z.B.
+    // Ubuntu 24.04 mit AppArmor-Restriktion) - Chrome kann sich sonst nicht
+    // sandboxen und stürzt beim Start ab. Der Prozess läuft ohnehin als
+    // eigener unprivilegierter Systembenutzer (siehe Deployment), das
+    // kompensiert einen Teil der fehlenden Chrome-eigenen Sandbox.
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  }) as unknown as Browser;
 }
 
 /** Rendert ein komplettes HTML-Dokument (alle Empfänger, alle Seiten) zu einer einzigen PDF. */
