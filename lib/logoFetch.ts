@@ -32,6 +32,8 @@ export type LogoFetchResult = {
   suggestedColor: string | null;
   colorSource: "theme-color" | "logo-pixel" | "logo-svg" | null;
   logoSourceUrl: string;
+  /** true, wenn ein weißer Vordergrund automatisch in suggestedColor eingefärbt wurde. */
+  recolored: boolean;
 };
 
 function normalizeUrl(input: string): URL {
@@ -205,6 +207,29 @@ function dominantColorFromSvg(svgText: string): string | null {
   return best;
 }
 
+const WHITE_FILL_RE = /fill\s*[:=]\s*["']?\s*(#fff(?:fff)?|white)\s*["']?/gi;
+const ANY_FILL_RE = /fill\s*[:=]\s*["']?\s*(#[0-9a-fA-F]{3,6}|white|black|none)\s*["']?/gi;
+
+/**
+ * true, wenn ein großer Teil der farbig gefüllten Flächen im SVG weiß ist -
+ * typisch für eine Logo-Variante, die für farbige/dunkle Hintergründe gedacht
+ * ist und auf weißem Briefpapier unsichtbar würde (siehe fischer.de-Beispiel:
+ * weißer "fischer"-Schriftzug neben einem farbigen Symbol).
+ */
+function svgHasWhiteForeground(svgText: string): boolean {
+  const whiteCount = [...svgText.matchAll(WHITE_FILL_RE)].length;
+  if (whiteCount === 0) return false;
+  const totalCount = [...svgText.matchAll(ANY_FILL_RE)].filter((m) => m[1].toLowerCase() !== "none").length;
+  return totalCount > 0 && whiteCount / totalCount > 0.3;
+}
+
+/** Ersetzt weiße fill-Werte (Attribut oder CSS-Deklaration, hex oder "white") durch hexColor. */
+function recolorSvgWhiteForeground(svgText: string, hexColor: string): string {
+  return svgText
+    .replace(/fill=(["'])\s*(?:#fff(?:fff)?|white)\s*\1/gi, `fill="${hexColor}"`)
+    .replace(/fill\s*:\s*(?:#fff(?:fff)?|white)/gi, `fill:${hexColor}`);
+}
+
 type RasterAnalysis = {
   width: number;
   height: number;
@@ -213,6 +238,13 @@ type RasterAnalysis = {
   /** Rand/Ecken sind (fast) weiß oder transparent - passt gut auf einen weißen Briefbogen. */
   backgroundLooksLight: boolean;
   dominantColor: string | null;
+  /**
+   * true, wenn ein großer Teil der sichtbaren (undurchsichtigen) Pixel fast weiß
+   * ist UND das Bild echte Transparenz hat - typisch für eine "weiße" Logo-
+   * Variante, die eigentlich für farbige/dunkle Flächen gedacht ist und auf
+   * weißem Briefpapier unsichtbar würde.
+   */
+  hasWhiteForeground: boolean;
 };
 
 /** Lädt ein Rasterbild einmal und liefert Maße, Transparenz-/Hintergrund-Einschätzung und dominante Farbe. */
@@ -235,6 +267,8 @@ async function analyzeRaster(buf: Buffer): Promise<RasterAnalysis | null> {
     let borderLight = 0;
 
     let transparentTotal = 0;
+    let opaqueTotal = 0;
+    let opaqueNearWhite = 0;
     const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
 
     for (let y = 0; y < h; y++) {
@@ -258,6 +292,9 @@ async function analyzeRaster(buf: Buffer): Promise<RasterAnalysis | null> {
         const max = Math.max(r, g, b);
         const min = Math.min(r, g, b);
         const lightness = (max + min) / 2;
+
+        opaqueTotal++;
+        if (lightness > 235) opaqueNearWhite++;
 
         if (isBorder) {
           borderCount++;
@@ -289,17 +326,64 @@ async function analyzeRaster(buf: Buffer): Promise<RasterAnalysis | null> {
       : null;
 
     const borderLightOrTransparentRatio = borderCount > 0 ? (borderTransparent + borderLight) / borderCount : 0;
+    const transparentRatio = transparentTotal / (w * h);
+    const whiteForegroundRatio = opaqueTotal > 0 ? opaqueNearWhite / opaqueTotal : 0;
 
     return {
       width: img.width,
       height: img.height,
-      transparentRatio: transparentTotal / (w * h),
+      transparentRatio,
       backgroundLooksLight: borderLightOrTransparentRatio > 0.7,
       dominantColor,
+      hasWhiteForeground: transparentRatio > 0.1 && whiteForegroundRatio > 0.4,
     };
   } catch {
     return null;
   }
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const clean = hex.replace("#", "");
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16),
+  };
+}
+
+/**
+ * Ersetzt fast-weiße, undurchsichtige Pixel durch hexColor (Alpha bleibt
+ * unverändert, damit Kanten/Anti-Aliasing erhalten bleiben) - für Logos mit
+ * weißem Vordergrund auf transparentem Hintergrund (siehe hasWhiteForeground).
+ */
+async function recolorRasterWhiteForeground(buf: Buffer, hexColor: string): Promise<Buffer> {
+  const img = await loadImage(buf);
+  const canvas = createCanvas(img.width, img.height);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, img.width, img.height);
+  const data = imageData.data;
+  const target = hexToRgb(hexColor);
+
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a === 0) continue;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const lightness = (max + min) / 2;
+    const saturation = max === min ? 0 : (max - min) / (255 - Math.abs(2 * lightness - 255));
+    if (lightness > 200 && saturation < 0.25) {
+      data[i] = target.r;
+      data[i + 1] = target.g;
+      data[i + 2] = target.b;
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toBuffer("image/png");
 }
 
 type ScoredCandidate = {
@@ -309,6 +393,9 @@ type ScoredCandidate = {
   suggestedColor: string | null;
   colorSource: LogoFetchResult["colorSource"];
   score: number;
+  /** true, wenn ein weißer Vordergrund erkannt wurde, der vor der Auslieferung
+   * in suggestedColor eingefärbt werden sollte (siehe recolorWhiteForeground). */
+  needsWhiteRecolor: boolean;
 };
 
 function scoreRaster(analysis: RasterAnalysis, mime: string): number {
@@ -401,6 +488,7 @@ export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResu
       suggestedColor: themeColor ?? svgColor,
       colorSource: themeColor ? "theme-color" : svgColor ? "logo-svg" : null,
       score: 60 + Math.max(0, 10 - index * 2),
+      needsWhiteRecolor: svgHasWhiteForeground(svgMarkup),
     });
   }
 
@@ -428,7 +516,8 @@ export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResu
       if (buf.length === 0 || buf.length > MAX_IMAGE_BYTES) continue;
 
       if (mime === "image/svg+xml") {
-        const svgColor = dominantColorFromSvg(buf.toString("utf-8"));
+        const svgText = buf.toString("utf-8");
+        const svgColor = dominantColorFromSvg(svgText);
         scored.push({
           url: candidateUrl,
           mime,
@@ -436,6 +525,7 @@ export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResu
           suggestedColor: themeColor ?? svgColor,
           colorSource: themeColor ? "theme-color" : svgColor ? "logo-svg" : null,
           score: 45 + positionBonus, // SVG ist Vektor, i.d.R. frei von deckendem Hintergrund - guter Startwert
+          needsWhiteRecolor: svgHasWhiteForeground(svgText),
         });
         continue;
       }
@@ -449,6 +539,7 @@ export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResu
         suggestedColor: themeColor ?? analysis.dominantColor,
         colorSource: themeColor ? "theme-color" : analysis.dominantColor ? "logo-pixel" : null,
         score: scoreRaster(analysis, mime) + positionBonus,
+        needsWhiteRecolor: analysis.hasWhiteForeground,
       });
     } catch {
       continue; // nächsten Kandidaten versuchen
@@ -462,11 +553,32 @@ export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResu
   scored.sort((a, b) => b.score - a.score);
   const winner = scored[0];
 
+  // Weißen Vordergrund (Logo-Variante für farbige/dunkle Hintergründe) in die
+  // erkannte CI-Farbe einfärben, sonst wäre er auf weißem Briefpapier
+  // unsichtbar. Nur möglich, wenn überhaupt eine Farbe bekannt ist.
+  let outBuf = winner.buf;
+  let outMime = winner.mime;
+  let recolored = false;
+  if (winner.needsWhiteRecolor && winner.suggestedColor) {
+    try {
+      if (winner.mime === "image/svg+xml") {
+        outBuf = Buffer.from(recolorSvgWhiteForeground(winner.buf.toString("utf-8"), winner.suggestedColor), "utf-8");
+      } else {
+        outBuf = await recolorRasterWhiteForeground(winner.buf, winner.suggestedColor);
+        outMime = "image/png";
+      }
+      recolored = true;
+    } catch {
+      // Einfärben fehlgeschlagen -> Original unverändert ausliefern.
+    }
+  }
+
   return {
-    logoDataUrl: `data:${winner.mime};base64,${winner.buf.toString("base64")}`,
-    logoMime: winner.mime,
+    logoDataUrl: `data:${outMime};base64,${outBuf.toString("base64")}`,
+    logoMime: outMime,
     suggestedColor: winner.suggestedColor,
     colorSource: winner.colorSource,
     logoSourceUrl: winner.url,
+    recolored,
   };
 }

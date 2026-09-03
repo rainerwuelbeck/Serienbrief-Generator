@@ -73,8 +73,11 @@ export default function StepLetterhead({ state, update }: StepProps) {
       });
       setPreview(URL.createObjectURL(processed));
       if (data.suggestedColor) {
+        const recoloredHint = data.recolored
+          ? " Das Logo war weiß (für farbige Hintergründe gedacht) und wurde automatisch in dieser Farbe eingefärbt, damit es auf weißem Papier sichtbar ist."
+          : "";
         setColorSourceNote(
-          `Design-Farbe ${data.suggestedColor} übernommen (${COLOR_SOURCE_LABEL[data.colorSource] ?? "automatisch erkannt"}) — unten anpassbar.`
+          `Design-Farbe ${data.suggestedColor} übernommen (${COLOR_SOURCE_LABEL[data.colorSource] ?? "automatisch erkannt"}) — unten anpassbar.${recoloredHint}`
         );
       } else {
         setColorSourceNote("Logo geladen. Es konnte aber keine Farbe automatisch erkannt werden — bitte unten manuell setzen.");
