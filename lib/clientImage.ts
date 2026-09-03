@@ -38,3 +38,13 @@ export async function compressImageFile(
     return file; // Kompression fehlgeschlagen -> Original weiterverwenden
   }
 }
+
+/** Wandelt eine data:-URI (z.B. Ergebnis von /api/fetch-logo) in ein File-Objekt um. */
+export function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [header, base64] = dataUrl.split(",", 2);
+  const mime = header.match(/data:([^;]+)/)?.[1] ?? "application/octet-stream";
+  const bytes = atob(base64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new File([arr], filename, { type: mime });
+}

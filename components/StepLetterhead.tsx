@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { compressImageFile } from "@/lib/clientImage";
+import { compressImageFile, dataUrlToFile } from "@/lib/clientImage";
 import { buildAbsenderzeile } from "@/lib/absenderzeile";
 import FileUploadButton from "./FileUploadButton";
 import type { LogoPosition, StepProps } from "./wizardTypes";
@@ -12,8 +12,18 @@ const POSITIONS: { id: LogoPosition; label: string }[] = [
   { id: "right", label: "Oben rechts" },
 ];
 
+const COLOR_SOURCE_LABEL: Record<string, string> = {
+  "theme-color": "aus der theme-color der Webseite",
+  "logo-pixel": "aus dem Logo geschätzt",
+  "logo-svg": "aus dem Logo geschätzt",
+};
+
 export default function StepLetterhead({ state, update }: StepProps) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [logoUrlInput, setLogoUrlInput] = useState("");
+  const [fetchingLogo, setFetchingLogo] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [colorSourceNote, setColorSourceNote] = useState<string | null>(null);
 
   async function handleLetterheadFile(file: File | null) {
     if (!file) {
@@ -37,6 +47,43 @@ export default function StepLetterhead({ state, update }: StepProps) {
     const processed = await compressImageFile(file);
     update({ logoFile: processed });
     setPreview(URL.createObjectURL(processed));
+    setColorSourceNote(null);
+  }
+
+  async function handleFetchLogo() {
+    if (!logoUrlInput.trim()) return;
+    setFetchingLogo(true);
+    setFetchError(null);
+    setColorSourceNote(null);
+    try {
+      const res = await fetch("/api/fetch-logo", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: logoUrlInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error ?? "Logo konnte nicht geladen werden.");
+      }
+      const file = dataUrlToFile(data.logoDataUrl, "logo-von-webseite." + (data.logoMime === "image/svg+xml" ? "svg" : data.logoMime.split("/")[1]));
+      const processed = file.type === "image/svg+xml" ? file : await compressImageFile(file);
+      update({
+        logoFile: processed,
+        ...(data.suggestedColor ? { designColor: data.suggestedColor } : {}),
+      });
+      setPreview(URL.createObjectURL(processed));
+      if (data.suggestedColor) {
+        setColorSourceNote(
+          `Design-Farbe ${data.suggestedColor} übernommen (${COLOR_SOURCE_LABEL[data.colorSource] ?? "automatisch erkannt"}) — unten anpassbar.`
+        );
+      } else {
+        setColorSourceNote("Logo geladen. Es konnte aber keine Farbe automatisch erkannt werden — bitte unten manuell setzen.");
+      }
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : "Logo konnte nicht geladen werden.");
+    } finally {
+      setFetchingLogo(false);
+    }
   }
 
   return (
@@ -49,7 +96,7 @@ export default function StepLetterhead({ state, update }: StepProps) {
         </p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <button
           type="button"
           onClick={() => update({ letterheadMode: "image" })}
@@ -69,6 +116,16 @@ export default function StepLetterhead({ state, update }: StepProps) {
         >
           <div className="font-medium">Kein Briefbogen — nur Logo</div>
           <div className="text-slate-500">Logo hochladen und Position wählen</div>
+        </button>
+        <button
+          type="button"
+          onClick={() => update({ letterheadMode: "logoUrl" })}
+          className={`flex-1 rounded-lg border p-3 text-left text-sm ${
+            state.letterheadMode === "logoUrl" ? "border-sky-600 bg-sky-50" : "border-slate-300"
+          }`}
+        >
+          <div className="font-medium">Logo von Webseite holen</div>
+          <div className="text-slate-500">Adresse eingeben, Logo + Farbe automatisch übernehmen</div>
         </button>
       </div>
 
@@ -142,6 +199,74 @@ export default function StepLetterhead({ state, update }: StepProps) {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {state.letterheadMode === "logoUrl" && (
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Webseite des Kunden</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={logoUrlInput}
+                onChange={(e) => setLogoUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleFetchLogo();
+                  }
+                }}
+                placeholder="www.musterfirma.de"
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={handleFetchLogo}
+                disabled={fetchingLogo || !logoUrlInput.trim()}
+                className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+              >
+                {fetchingLogo ? "Lade…" : "Logo laden"}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Sucht auf der Startseite automatisch nach dem Logo (og:image, Header-Logo, Icon) und
+              versucht, die CI-Hauptfarbe daraus bzw. aus der Seite zu erkennen. Experimentell —
+              funktioniert nicht auf jeder Webseite gleich gut, bitte Ergebnis prüfen.
+            </p>
+            {fetchError && <p className="mt-2 text-sm text-red-600">{fetchError}</p>}
+            {colorSourceNote && <p className="mt-2 text-sm text-emerald-700">{colorSourceNote}</p>}
+          </div>
+
+          {state.logoFile && (
+            <>
+              <div>
+                {preview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={preview} alt="Vorschau Logo" className="max-h-32 rounded border border-slate-200 bg-white p-2" />
+                )}
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Position auf Seite 1</label>
+                <div className="flex gap-2">
+                  {POSITIONS.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => update({ logoPosition: p.id })}
+                      className={`rounded-lg border px-3 py-1.5 text-sm ${
+                        state.logoPosition === p.id
+                          ? "border-sky-600 bg-sky-600 text-white"
+                          : "border-slate-300 bg-white hover:bg-slate-100"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

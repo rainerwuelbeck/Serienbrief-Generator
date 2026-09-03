@@ -21,11 +21,14 @@ const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 function buildFormData(state: WizardState): FormData {
   const fd = new FormData();
-  fd.set("letterheadMode", state.letterheadMode);
+  // "logoUrl" ist nur eine client-seitige Auswahl (siehe wizardTypes.ts) - fürs
+  // Backend ist ein per Webseite geholtes Logo identisch zu einem hochgeladenen.
+  const isLogoMode = state.letterheadMode === "logo" || state.letterheadMode === "logoUrl";
+  fd.set("letterheadMode", isLogoMode ? "logo" : state.letterheadMode);
   if (state.letterheadMode === "image" && state.letterheadFile) {
     fd.set("letterheadFile", state.letterheadFile);
   }
-  if (state.letterheadMode === "logo") {
+  if (isLogoMode) {
     if (state.logoFile) fd.set("logoFile", state.logoFile);
     fd.set("logoPosition", state.logoPosition);
   }
@@ -117,6 +120,10 @@ export default function Wizard() {
     if (state.letterheadMode === "logo" && !state.logoFile) {
       setStep(1);
       return "Bitte ein Logo hochladen (Schritt 1).";
+    }
+    if (state.letterheadMode === "logoUrl" && !state.logoFile) {
+      setStep(1);
+      return "Bitte ein Logo von einer Webseite laden (Schritt 1).";
     }
     if (!HEX_COLOR_RE.test(state.designColor)) {
       setStep(1);

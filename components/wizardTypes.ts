@@ -10,7 +10,10 @@ export const DEFAULT_DESIGN_COLOR = "#1E6FA6";
 
 export type WizardState = {
   // Schritt 1: Briefbogen / Logo / Design-Farbe
-  letterheadMode: "image" | "logo";
+  // "logoUrl" ist rein client-seitig (UI-Auswahl "Logo von Webseite holen") -
+  // nach erfolgreichem Laden landet das Logo genau wie bei "logo" in logoFile,
+  // fürs Backend wird logoUrl beim Absenden zu "logo" (siehe Wizard.tsx).
+  letterheadMode: "image" | "logo" | "logoUrl";
   letterheadFile: File | null;
   logoFile: File | null;
   logoPosition: LogoPosition;
