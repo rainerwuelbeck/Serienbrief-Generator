@@ -5,10 +5,18 @@ import { loadImage, createCanvas } from "@napi-rs/canvas";
  * Webseite holen" in StepLetterhead). Serverseitig (app/api/fetch-logo/route.ts),
  * damit kein CORS-Problem entsteht und die Fetch-Ziele grob abgesichert werden
  * können (kein Zugriff auf interne/private Adressen).
+ *
+ * Es wird nicht einfach der erste gefundene Kandidat genommen, sondern mehrere
+ * Kandidaten geladen und bewertet (Transparenz/heller Hintergrund, Größe,
+ * Seitenverhältnis) - ein Logo mit weißer Schrift auf farbiger Fläche (z.B.
+ * ein Social-Media-Bannerbild) sieht auf einem weißen Briefbogen schlecht aus
+ * und soll daher gegenüber einem freigestellten Logo mit Transparenz/hellem
+ * Hintergrund niedriger bewertet werden.
  */
 
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_CANDIDATES_TO_TRY = 8;
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36 Serienbrief-Generator-LogoFetch/1.0";
 
@@ -91,13 +99,40 @@ function absolutize(candidate: string | undefined, baseUrl: URL): string | null 
   }
 }
 
+/**
+ * Viele moderne Webseiten binden ihr Logo als Inline-<svg> statt als <img src="...">
+ * ein (z.B. für CSS-Farbtheming via currentColor) - dafür gibt es gar keine ladbare
+ * URL, das Markup steht direkt im HTML. Wird hier per Textfenster um jedes <svg>
+ * (eigene Attribute + kurzer Kontext davor, meist ein umschließendes <a>/<div> mit
+ * "logo"-Klasse) gesucht.
+ */
+function findInlineSvgLogos(html: string): string[] {
+  const results: string[] = [];
+  const svgRe = /<svg\b[^>]*>[\s\S]*?<\/svg>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = svgRe.exec(html))) {
+    const svgTag = match[0];
+    if (svgTag.length > 20_000) continue; // vermutlich eine komplexe Illustration, kein Logo
+    const windowStart = Math.max(0, match.index - 400);
+    const context = html.slice(windowStart, match.index) + svgTag.slice(0, 200);
+    if (/logo/i.test(context)) {
+      const withNamespace = /xmlns\s*=/.test(svgTag.slice(0, 200))
+        ? svgTag
+        : svgTag.replace(/^<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+      results.push(withNamespace);
+    }
+  }
+  return results;
+}
+
 /** Sucht in der Seiten-HTML nach möglichen Logo-URLs, in sinnvoller Prioritätsreihenfolge. */
 function findLogoCandidates(html: string, baseUrl: URL): string[] {
   const candidates: string[] = [];
 
   // Priorität: ein erkennbares Kopfzeilen-Logo ist fürs Briefpapier fast immer
   // besser geeignet als das og:image (das ist oft ein Marketing-Banner/Foto
-  // fürs Social-Media-Vorschaubild, kein sauberes Logo).
+  // fürs Social-Media-Vorschaubild, kein sauberes Logo). Trotzdem werden am
+  // Ende ALLE Kandidaten geladen und bewertet, nicht nur der erste Treffer.
 
   // <img>-Tags, deren class/id/alt/src "logo" enthält - typischerweise das Kopfzeilen-Logo.
   // (funktioniert auch bei inline data:-URIs als src.)
@@ -130,7 +165,7 @@ function findLogoCandidates(html: string, baseUrl: URL): string[] {
   const favicon = absolutize("/favicon.ico", baseUrl);
   if (favicon) candidates.push(favicon);
 
-  return [...new Set(candidates)];
+  return [...new Set(candidates)].slice(0, MAX_CANDIDATES_TO_TRY);
 }
 
 /** Häufigste fill-Farbe in einem SVG (Regex-Heuristik, kein echtes Parsing - reicht für einfache Logo-SVGs). */
@@ -152,52 +187,131 @@ function dominantColorFromSvg(svgText: string): string | null {
   return best;
 }
 
-/** Häufigste (gesättigte, nicht zu helle/dunkle) Pixelfarbe eines Rasterbilds. */
-async function dominantColorFromRaster(buf: Buffer): Promise<string | null> {
+type RasterAnalysis = {
+  width: number;
+  height: number;
+  /** Anteil deutlich transparenter Pixel (0-1). */
+  transparentRatio: number;
+  /** Rand/Ecken sind (fast) weiß oder transparent - passt gut auf einen weißen Briefbogen. */
+  backgroundLooksLight: boolean;
+  dominantColor: string | null;
+};
+
+/** Lädt ein Rasterbild einmal und liefert Maße, Transparenz-/Hintergrund-Einschätzung und dominante Farbe. */
+async function analyzeRaster(buf: Buffer): Promise<RasterAnalysis | null> {
   try {
     const img = await loadImage(buf);
-    const w = Math.max(1, Math.min(img.width, 120));
+    const w = Math.max(1, Math.min(img.width, 160));
     const h = Math.max(1, Math.round((img.height / img.width) * w) || 1);
     const canvas = createCanvas(w, h);
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0, w, h);
     const { data } = ctx.getImageData(0, 0, w, h);
 
-    const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const a = data[i + 3];
-      if (a < 128) continue;
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      const lightness = (max + min) / 2;
-      if (lightness > 235 || lightness < 20) continue; // fast weiß/schwarz -> meist Hintergrund/Text
-      const saturation = max === min ? 0 : (max - min) / (255 - Math.abs(2 * lightness - 255));
-      if (saturation < 0.2) continue; // zu grau
+    // Rand (äußere ~12% jeder Kante) als Stellvertreter für den "Hintergrund" des
+    // Bildes nehmen - bei einem freigestellten Logo ist das transparent/weiß, bei
+    // einem Bannerbild (z.B. Schriftzug auf farbiger Fläche) eine kräftige Farbe.
+    const borderPx = Math.max(1, Math.round(Math.min(w, h) * 0.12));
+    let borderCount = 0;
+    let borderTransparent = 0;
+    let borderLight = 0;
 
-      const key = `${Math.round(r / 20)}_${Math.round(g / 20)}_${Math.round(b / 20)}`;
-      const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
-      bucket.count++;
-      bucket.r += r;
-      bucket.g += g;
-      bucket.b += b;
-      buckets.set(key, bucket);
+    let transparentTotal = 0;
+    const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+        const isBorder = x < borderPx || x >= w - borderPx || y < borderPx || y >= h - borderPx;
+
+        if (a < 40) {
+          transparentTotal++;
+          if (isBorder) {
+            borderCount++;
+            borderTransparent++;
+          }
+          continue;
+        }
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const lightness = (max + min) / 2;
+
+        if (isBorder) {
+          borderCount++;
+          if (lightness > 225) borderLight++;
+        }
+
+        if (lightness > 235 || lightness < 20) continue; // fast weiß/schwarz -> meist Hintergrund/Text
+        const saturation = max === min ? 0 : (max - min) / (255 - Math.abs(2 * lightness - 255));
+        if (saturation < 0.2) continue; // zu grau
+
+        const key = `${Math.round(r / 20)}_${Math.round(g / 20)}_${Math.round(b / 20)}`;
+        const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
+        bucket.count++;
+        bucket.r += r;
+        bucket.g += g;
+        bucket.b += b;
+        buckets.set(key, bucket);
+      }
     }
 
     let best: { count: number; r: number; g: number; b: number } | null = null;
     for (const bucket of buckets.values()) {
       if (!best || bucket.count > best.count) best = bucket;
     }
-    if (!best) return null;
-    const r = Math.round(best.r / best.count);
-    const g = Math.round(best.g / best.count);
-    const b = Math.round(best.b / best.count);
-    return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+    const dominantColor = best
+      ? `#${[best.r, best.g, best.b]
+          .map((v) => Math.round(v / best!.count).toString(16).padStart(2, "0"))
+          .join("")}`.toUpperCase()
+      : null;
+
+    const borderLightOrTransparentRatio = borderCount > 0 ? (borderTransparent + borderLight) / borderCount : 0;
+
+    return {
+      width: img.width,
+      height: img.height,
+      transparentRatio: transparentTotal / (w * h),
+      backgroundLooksLight: borderLightOrTransparentRatio > 0.7,
+      dominantColor,
+    };
   } catch {
     return null;
   }
+}
+
+type ScoredCandidate = {
+  url: string;
+  mime: string;
+  buf: Buffer;
+  suggestedColor: string | null;
+  colorSource: LogoFetchResult["colorSource"];
+  score: number;
+};
+
+function scoreRaster(analysis: RasterAnalysis, mime: string): number {
+  let score = 0;
+  if (analysis.transparentRatio > 0.15) score += 50;
+  else if (analysis.backgroundLooksLight) score += 25;
+  else score -= 45; // deckende, kräftig gefärbte Fläche -> auf weißem Brief unpassend
+
+  if (analysis.width < 24 || analysis.height < 24) score -= 30; // vermutlich nur Favicon/Tracking-Pixel
+  if (analysis.width > 2400 || analysis.height > 2400) score -= 15; // vermutlich Foto statt Logo-Asset
+
+  const ratio = analysis.width / Math.max(1, analysis.height);
+  if (ratio > 4.5 || ratio < 0.2) score -= 20; // extrem breites Banner oder schmaler Streifen
+
+  if (analysis.width >= 64 && analysis.width <= 900) score += 10; // typische Logo-Asset-Größe
+  if (analysis.width < 100) score -= 8; // sehr kleine Variante - oft nur ein Icon-Kürzel ohne Schriftzug
+
+  if (mime === "image/png" || mime === "image/webp") score += 5; // eher Grafik/Logo als Foto
+  if (analysis.dominantColor) score += 8; // erkennbare Farbe -> eher ein "echtes" Marken-Logo als ein reines Mono-Icon
+
+  return score;
 }
 
 const IMAGE_MIME_BY_EXTENSION: Record<string, string> = {
@@ -227,12 +341,36 @@ export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResu
   const html = await pageRes.text();
 
   const themeColor = extractThemeColor(html);
-  const candidates = findLogoCandidates(html, pageUrl);
-  if (candidates.length === 0) {
+  const candidateUrls = findLogoCandidates(html, pageUrl);
+  const inlineSvgLogos = findInlineSvgLogos(html);
+  if (candidateUrls.length === 0 && inlineSvgLogos.length === 0) {
     throw new Error("Auf dieser Seite konnte kein Logo gefunden werden.");
   }
 
-  for (const candidateUrl of candidates) {
+  const scored: ScoredCandidate[] = [];
+
+  // Inline-<svg>-Logos zuerst bewerten: kein zusätzlicher Request nötig, und ein
+  // per Klasse eindeutig als "Logo" erkanntes Vektorbild ist normalerweise die
+  // zuverlässigste Quelle (garantiert ohne deckenden Hintergrund).
+  for (const [index, svgMarkup] of inlineSvgLogos.entries()) {
+    const buf = Buffer.from(svgMarkup, "utf-8");
+    const svgColor = dominantColorFromSvg(svgMarkup);
+    scored.push({
+      url: pageUrl.href + "#inline-svg-logo",
+      mime: "image/svg+xml",
+      buf,
+      suggestedColor: themeColor ?? svgColor,
+      colorSource: themeColor ? "theme-color" : svgColor ? "logo-svg" : null,
+      score: 60 + Math.max(0, 10 - index * 2),
+    });
+  }
+
+  for (const [index, candidateUrl] of candidateUrls.entries()) {
+    // Frühe Fund-Position bonieren: das echte Kopfzeilen-Logo steht so gut wie
+    // immer als erstes "logo"-<img> im HTML, während später im Dokument
+    // gefundene "logo"-Treffer oft Partner-/Zertifikats-Badges sind, die rein
+    // bildlich (klein, transparent) sonst leicht höher bewertet würden.
+    const positionBonus = Math.max(0, 24 - index * 10);
     try {
       const candidateParsed = new URL(candidateUrl);
       assertPublicHost(candidateParsed);
@@ -242,37 +380,54 @@ export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResu
       const contentType = imgRes.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
       const mime = contentType?.startsWith("image/") ? contentType : guessMimeFromUrl(candidateUrl);
       if (!mime) continue;
+      // .ico-Dateien enthalten oft mehrere Größen und werden von @napi-rs/canvas
+      // nicht zuverlässig dekodiert - als reines Fallback-Icon meist ohnehin nicht
+      // ideal fürs Logo, daher überspringen.
+      if (mime === "image/x-icon" || mime === "image/vnd.microsoft.icon") continue;
 
       const buf = Buffer.from(await imgRes.arrayBuffer());
       if (buf.length === 0 || buf.length > MAX_IMAGE_BYTES) continue;
-      // .ico-Dateien enthalten oft mehrere Größen und werden von @napi-rs/canvas
-      // nicht zuverlässig dekodiert - als reines Fallback-Icon meist ohnehin nicht
-      // ideal fürs Logo, daher überspringen und zum nächsten Kandidaten weiter.
-      if (mime === "image/x-icon" || mime === "image/vnd.microsoft.icon") continue;
 
-      let suggestedColor = themeColor;
-      let colorSource: LogoFetchResult["colorSource"] = themeColor ? "theme-color" : null;
-      if (!suggestedColor) {
-        if (mime === "image/svg+xml") {
-          suggestedColor = dominantColorFromSvg(buf.toString("utf-8"));
-          if (suggestedColor) colorSource = "logo-svg";
-        } else {
-          suggestedColor = await dominantColorFromRaster(buf);
-          if (suggestedColor) colorSource = "logo-pixel";
-        }
+      if (mime === "image/svg+xml") {
+        const svgColor = dominantColorFromSvg(buf.toString("utf-8"));
+        scored.push({
+          url: candidateUrl,
+          mime,
+          buf,
+          suggestedColor: themeColor ?? svgColor,
+          colorSource: themeColor ? "theme-color" : svgColor ? "logo-svg" : null,
+          score: 45 + positionBonus, // SVG ist Vektor, i.d.R. frei von deckendem Hintergrund - guter Startwert
+        });
+        continue;
       }
 
-      return {
-        logoDataUrl: `data:${mime};base64,${buf.toString("base64")}`,
-        logoMime: mime,
-        suggestedColor,
-        colorSource,
-        logoSourceUrl: candidateUrl,
-      };
+      const analysis = await analyzeRaster(buf);
+      if (!analysis) continue;
+      scored.push({
+        url: candidateUrl,
+        mime,
+        buf,
+        suggestedColor: themeColor ?? analysis.dominantColor,
+        colorSource: themeColor ? "theme-color" : analysis.dominantColor ? "logo-pixel" : null,
+        score: scoreRaster(analysis, mime) + positionBonus,
+      });
     } catch {
       continue; // nächsten Kandidaten versuchen
     }
   }
 
-  throw new Error("Es konnte kein verwendbares Logo von dieser Seite geladen werden.");
+  if (scored.length === 0) {
+    throw new Error("Es konnte kein verwendbares Logo von dieser Seite geladen werden.");
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  const winner = scored[0];
+
+  return {
+    logoDataUrl: `data:${winner.mime};base64,${winner.buf.toString("base64")}`,
+    logoMime: winner.mime,
+    suggestedColor: winner.suggestedColor,
+    colorSource: winner.colorSource,
+    logoSourceUrl: winner.url,
+  };
 }
