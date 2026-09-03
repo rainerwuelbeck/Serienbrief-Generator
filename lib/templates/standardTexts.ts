@@ -25,7 +25,7 @@ export type StandardText = {
 export const STANDARD_TEXTS: StandardText[] = [
   {
     id: "j-du",
-    label: "Variante „J“ – Du-Anrede",
+    label: "Variante „A“ – Du-Anrede",
     duSie: "du",
     defaultHeadline: "Warum Geld verschenken?\nSpare Steuern und Sozialabgaben mit unserer Hilfe!",
     bodyHtml: `
@@ -42,7 +42,7 @@ export const STANDARD_TEXTS: StandardText[] = [
   },
   {
     id: "j-sie",
-    label: "Variante „J“ – Sie-Anrede",
+    label: "Variante „A“ – Sie-Anrede",
     duSie: "sie",
     defaultHeadline: "Warum Geld verschenken?\nSparen Sie Steuern und Sozialabgaben mit unserer Hilfe!",
     bodyHtml: `
@@ -59,7 +59,7 @@ export const STANDARD_TEXTS: StandardText[] = [
   },
   {
     id: "f-du",
-    label: "Variante „F“ – Du-Anrede",
+    label: "Variante „B“ – Du-Anrede",
     duSie: "du",
     defaultHeadline: "",
     bodyHtml: `
@@ -75,7 +75,7 @@ export const STANDARD_TEXTS: StandardText[] = [
   },
   {
     id: "f-sie",
-    label: "Variante „F“ – Sie-Anrede",
+    label: "Variante „B“ – Sie-Anrede",
     duSie: "sie",
     defaultHeadline: "",
     bodyHtml: `
