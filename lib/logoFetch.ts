@@ -20,6 +20,12 @@ const MAX_CANDIDATES_TO_TRY = 8;
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36 Serienbrief-Generator-LogoFetch/1.0";
 
+// Häufige Zahlungs-/Versanddienstleister, deren Badge-Bilder im alt-Text/Dateinamen
+// oft "Logo" enthalten (Barrierefreiheit) und sonst leicht mit dem echten
+// Marken-Logo der Seite verwechselt werden.
+const THIRD_PARTY_BADGE_RE =
+  /paypal|klarna|sofort|giropay|mastercard|visa[-_ ]?card|american[-_ ]?express|amex|dhl|dpd|hermes|ups\b|fedex|gls\b|kreditkarte|payment|trusted[-_ ]?shops|ssl[-_ ]?secure/i;
+
 export type LogoFetchResult = {
   logoDataUrl: string;
   logoMime: string;
@@ -135,10 +141,14 @@ function findLogoCandidates(html: string, baseUrl: URL): string[] {
   // Ende ALLE Kandidaten geladen und bewertet, nicht nur der erste Treffer.
 
   // <img>-Tags, deren class/id/alt/src "logo" enthält - typischerweise das Kopfzeilen-Logo.
-  // (funktioniert auch bei inline data:-URIs als src.)
+  // (funktioniert auch bei inline data:-URIs als src.) Zahlungs-/Versanddienstleister-
+  // Badges (PayPal, DHL, Visa, Klarna, ...) tragen im alt-Text oft ebenfalls "Logo" und
+  // werden daher ausdrücklich ausgeschlossen - sonst gewinnen sie auf Shop-Seiten leicht
+  // gegen das eigentliche (oft gar nicht als "logo" ausgezeichnete) Marken-Logo.
   for (const tagMatch of html.matchAll(/<img\b[^>]*>/gi)) {
     const tag = tagMatch[0];
     if (!/logo/i.test(tag)) continue;
+    if (THIRD_PARTY_BADGE_RE.test(tag)) continue;
     const src = tag.match(/\bsrc=["']([^"']+)["']/i)?.[1];
     const abs = absolutize(src, baseUrl);
     if (abs) candidates.push(abs);
@@ -168,13 +178,21 @@ function findLogoCandidates(html: string, baseUrl: URL): string[] {
   return [...new Set(candidates)].slice(0, MAX_CANDIDATES_TO_TRY);
 }
 
-/** Häufigste fill-Farbe in einem SVG (Regex-Heuristik, kein echtes Parsing - reicht für einfache Logo-SVGs). */
+/**
+ * Häufigste fill-Farbe in einem SVG (Regex-Heuristik, kein echtes Parsing - reicht
+ * für einfache Logo-SVGs). Deckt beide üblichen Schreibweisen ab: das Präsentations-
+ * Attribut `fill="#hex"` direkt am Element, und `fill:#hex` als CSS-Deklaration
+ * (typischerweise in einem eingebetteten <style>-Block mit Klassen wie .cls-1).
+ */
 function dominantColorFromSvg(svgText: string): string | null {
   const counts = new Map<string, number>();
-  for (const m of svgText.matchAll(/fill=["']\s*(#[0-9a-fA-F]{3,6})\s*["']/gi)) {
-    const hex = normalizeHexColor(m[1]);
-    if (!hex || hex === "#FFFFFF" || hex === "#000000") continue;
-    counts.set(hex, (counts.get(hex) ?? 0) + 1);
+  const patterns = [/fill=["']\s*(#[0-9a-fA-F]{3,6})\s*["']/gi, /fill\s*:\s*(#[0-9a-fA-F]{3,6})/gi];
+  for (const pattern of patterns) {
+    for (const m of svgText.matchAll(pattern)) {
+      const hex = normalizeHexColor(m[1]);
+      if (!hex || hex === "#FFFFFF" || hex === "#000000") continue;
+      counts.set(hex, (counts.get(hex) ?? 0) + 1);
+    }
   }
   let best: string | null = null;
   let bestCount = 0;
@@ -328,17 +346,38 @@ function guessMimeFromUrl(url: string): string | null {
   return ext ? IMAGE_MIME_BY_EXTENSION[ext] : null;
 }
 
-export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResult> {
-  const pageUrl = normalizeUrl(inputUrl);
-  assertPublicHost(pageUrl);
-
-  const pageRes = await fetchWithTimeout(pageUrl.href, {
+async function fetchPageHtml(pageUrl: URL): Promise<{ html: string; finalUrl: URL }> {
+  try {
+    const res = await fetchWithTimeout(pageUrl.href, {
+      headers: { "user-agent": USER_AGENT, accept: "text/html,*/*" },
+    });
+    if (res.ok) return { html: await res.text(), finalUrl: new URL(res.url || pageUrl.href) };
+    if (pageUrl.hostname.startsWith("www.")) {
+      throw new Error(`Webseite konnte nicht geladen werden (Status ${res.status}).`);
+    }
+  } catch (e) {
+    if (pageUrl.hostname.startsWith("www.")) throw e;
+    // manche Domains antworten nur unter "www." (DNS/Zertifikat nur dafür
+    // eingerichtet) - einmal automatisch mit "www." erneut versuchen.
+  }
+  const wwwUrl = new URL(pageUrl.href);
+  wwwUrl.hostname = `www.${wwwUrl.hostname}`;
+  assertPublicHost(wwwUrl);
+  const res = await fetchWithTimeout(wwwUrl.href, {
     headers: { "user-agent": USER_AGENT, accept: "text/html,*/*" },
   });
-  if (!pageRes.ok) {
-    throw new Error(`Webseite konnte nicht geladen werden (Status ${pageRes.status}).`);
+  if (!res.ok) {
+    throw new Error(`Webseite konnte nicht geladen werden (Status ${res.status}).`);
   }
-  const html = await pageRes.text();
+  return { html: await res.text(), finalUrl: new URL(res.url || wwwUrl.href) };
+}
+
+export async function fetchLogoAndColor(inputUrl: string): Promise<LogoFetchResult> {
+  let pageUrl = normalizeUrl(inputUrl);
+  assertPublicHost(pageUrl);
+
+  const { html, finalUrl } = await fetchPageHtml(pageUrl);
+  pageUrl = finalUrl; // relative Logo-Pfade gegen die tatsächlich geladene URL auflösen (Redirects, www-Fallback)
 
   const themeColor = extractThemeColor(html);
   const candidateUrls = findLogoCandidates(html, pageUrl);
