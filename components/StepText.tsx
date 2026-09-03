@@ -223,17 +223,6 @@ export default function StepText({ state, update }: StepProps) {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => update({ duSieMode: "sie" })}
-            className={`rounded-lg border px-3 py-1.5 text-sm ${
-              state.duSieMode === "sie"
-                ? "border-sky-600 bg-sky-600 text-white"
-                : "border-slate-300 bg-white hover:bg-slate-100"
-            }`}
-          >
-            Sie
-          </button>
-          <button
-            type="button"
             onClick={() => update({ duSieMode: "du" })}
             className={`rounded-lg border px-3 py-1.5 text-sm ${
               state.duSieMode === "du"
@@ -242,6 +231,17 @@ export default function StepText({ state, update }: StepProps) {
             }`}
           >
             Du
+          </button>
+          <button
+            type="button"
+            onClick={() => update({ duSieMode: "sie" })}
+            className={`rounded-lg border px-3 py-1.5 text-sm ${
+              state.duSieMode === "sie"
+                ? "border-sky-600 bg-sky-600 text-white"
+                : "border-slate-300 bg-white hover:bg-slate-100"
+            }`}
+          >
+            Sie
           </button>
         </div>
       </div>
