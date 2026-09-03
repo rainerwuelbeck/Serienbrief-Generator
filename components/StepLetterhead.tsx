@@ -127,7 +127,7 @@ export default function StepLetterhead({ state, update }: StepProps) {
             state.letterheadMode === "logoUrl" ? "border-sky-600 bg-sky-50" : "border-slate-300"
           }`}
         >
-          <div className="font-medium">Logo von Webseite holen</div>
+          <div className="font-medium">Logo von Webseite holen (experimentell)</div>
           <div className="text-slate-500">Adresse eingeben, Logo + Farbe automatisch übernehmen</div>
         </button>
       </div>
