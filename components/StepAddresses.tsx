@@ -210,13 +210,13 @@ export default function StepAddresses({ state, update }: StepProps) {
           {state.absenderAusCsv && (
             <div className="rounded-lg border border-sky-200 bg-sky-50/50 p-4">
               <label className="mb-2 block text-sm font-medium">
-                Arbeitgeber-Adresse (für die Absenderzeile)
+                Arbeitgeber-Daten (für die Absenderzeile)
               </label>
               <p className="mb-3 text-xs text-slate-500">
-                „Absender aus dCRYPT-CSV übernehmen“ ist in Schritt 1 aktiviert — bitte diese drei
+                „Absender aus dCRYPT-CSV übernehmen“ ist in Schritt 1 aktiviert — bitte diese vier
                 Spalten zuordnen.
               </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {EMPLOYER_FIELDS.map((field) => (
                   <div key={field.key}>
                     <label className="mb-1 block text-sm font-medium">{field.label}</label>
@@ -329,7 +329,7 @@ export default function StepAddresses({ state, update }: StepProps) {
                       {state.absenderAusCsv && (
                         <td className="px-3 py-2">
                           {buildAbsenderzeile(
-                            state.absenderUnternehmensname,
+                            r.arbeitgebername,
                             r.arbeitgeberStrasse,
                             r.arbeitgeberPlz,
                             r.arbeitgeberOrt

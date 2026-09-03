@@ -41,12 +41,15 @@ export const SIMPLE_FIELDS: { key: SimpleField; label: string; hint: string }[] 
   { key: "freischaltcode", label: "Freischaltcode", hint: "persönlicher Zugangscode" },
 ];
 
-// Arbeitgeber-Adresse je Empfänger (z.B. aus einer dCRYPT-CSV) - optional, nur
+// Arbeitgeber-Daten je Empfänger (z.B. aus einer dCRYPT-CSV) - optional, nur
 // gebraucht wenn die Absenderzeile (Schritt 1) pro Empfänger aus der CSV
-// übernommen werden soll statt fest eingetragen zu sein.
-export type EmployerField = "arbeitgeberStrasse" | "arbeitgeberPlz" | "arbeitgeberOrt";
+// übernommen werden soll statt fest eingetragen zu sein. arbeitgebername
+// ersetzt dabei auch den sonst fest eingetragenen Unternehmensnamen
+// (Absenderzeile UND den {{Unternehmensname}}-Platzhalter im Brieftext).
+export type EmployerField = "arbeitgebername" | "arbeitgeberStrasse" | "arbeitgeberPlz" | "arbeitgeberOrt";
 
 export const EMPLOYER_FIELDS: { key: EmployerField; label: string; hint: string }[] = [
+  { key: "arbeitgebername", label: "Arbeitgebername", hint: "für Absenderzeile und {{Unternehmensname}}" },
   { key: "arbeitgeberStrasse", label: "Arbeitgeber-Straße + Hausnummer", hint: "für die Absenderzeile" },
   { key: "arbeitgeberPlz", label: "Arbeitgeber-PLZ", hint: "für die Absenderzeile" },
   { key: "arbeitgeberOrt", label: "Arbeitgeber-Ort", hint: "für die Absenderzeile" },
@@ -78,15 +81,13 @@ export type AnredezeileConfig =
   | { mode: "column"; column: string }
   | { mode: "auto"; template: AnredeTemplateId };
 
-export type Recipient = Record<SimpleField, string> & {
-  anredezeile: string;
-  /** Arbeitgeber-Adresse, leer wenn nicht gemappt (siehe EMPLOYER_FIELDS) */
-  arbeitgeberStrasse: string;
-  arbeitgeberPlz: string;
-  arbeitgeberOrt: string;
-  /** komplette Rohzeile, falls weitere Spalten für spätere Erweiterungen gebraucht werden */
-  raw: Record<string, string>;
-};
+export type Recipient = Record<SimpleField, string> &
+  /** Arbeitgeber-Daten, leer wenn nicht gemappt (siehe EMPLOYER_FIELDS) */
+  Record<EmployerField, string> & {
+    anredezeile: string;
+    /** komplette Rohzeile, falls weitere Spalten für spätere Erweiterungen gebraucht werden */
+    raw: Record<string, string>;
+  };
 
 export type ParsedCsv = {
   headers: string[];
@@ -150,6 +151,7 @@ export function guessMapping(headers: string[]): ColumnMapping {
     plz: ["plz", "postleitzahl", "zip", "zipcode", "postcode"],
     ort: ["ort", "stadt", "city", "town"],
     freischaltcode: ["freischaltcode", "code", "zugangscode", "aktivierungscode"],
+    arbeitgebername: ["arbeitgebername"],
     arbeitgeberStrasse: ["arbeitgeberstrasse"],
     arbeitgeberPlz: ["arbeitgeberplz"],
     arbeitgeberOrt: ["arbeitgeberort"],

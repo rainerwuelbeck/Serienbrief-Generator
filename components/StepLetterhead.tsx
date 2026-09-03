@@ -289,26 +289,26 @@ export default function StepLetterhead({ state, update }: StepProps) {
           <span>
             <span className="font-medium">Absender aus dCRYPT-CSV übernehmen</span>
             <span className="block text-xs text-slate-500">
-              Straße, PLZ und Ort der Absenderzeile werden dann je Empfänger aus der Adressliste
-              gelesen (z.B. bei mehreren Arbeitgeber-Standorten in einer Liste) - die Spalten dafür
-              ordnest du in Schritt 4 zu. Der Unternehmensname unten bleibt für alle gleich.
+              Unternehmensname, Straße, PLZ und Ort der Absenderzeile werden dann je Empfänger aus
+              der Adressliste gelesen (z.B. bei mehreren Arbeitgebern/Standorten in einer Liste) -
+              die Spalten dafür ordnest du in Schritt 4 zu.
             </span>
           </span>
         </label>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Unternehmensname</label>
-            <input
-              type="text"
-              value={state.absenderUnternehmensname}
-              onChange={(e) => update({ absenderUnternehmensname: e.target.value })}
-              placeholder="Musterfirma GmbH"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
           {!state.absenderAusCsv && (
             <>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-slate-600">Unternehmensname</label>
+                <input
+                  type="text"
+                  value={state.absenderUnternehmensname}
+                  onChange={(e) => update({ absenderUnternehmensname: e.target.value })}
+                  placeholder="Musterfirma GmbH"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
               <div className="col-span-2">
                 <label className="mb-1 block text-xs font-medium text-slate-600">Straße und Hausnummer</label>
                 <input

@@ -130,8 +130,12 @@ function renderHeadline(config: LetterConfig): string {
 }
 
 function renderPage1(config: LetterConfig, recipient: Recipient, dateText: string): string {
+  // Bei absenderAusCsv kommt der Unternehmensname (Absenderzeile UND
+  // {{Unternehmensname}}-Platzhalter) je Empfänger aus der Arbeitgebername-Spalte
+  // statt aus dem fest eingetragenen Feld (Schritt 1).
+  const unternehmensnameText = config.absenderAusCsv ? recipient.arbeitgebername : config.unternehmensname;
   const body = applyMergeFields(config.bodyHtml, recipient, {
-    unternehmensname: config.unternehmensname,
+    unternehmensname: unternehmensnameText,
     ansprechpartnerAnrede: config.ansprechpartnerAnrede,
     ansprechpartnerName: config.ansprechpartnerName,
     ansprechpartnerTelefon: config.ansprechpartnerTelefon,
@@ -139,7 +143,7 @@ function renderPage1(config: LetterConfig, recipient: Recipient, dateText: strin
   });
   const absenderzeileText = config.absenderAusCsv
     ? buildAbsenderzeile(
-        config.unternehmensname,
+        unternehmensnameText,
         recipient.arbeitgeberStrasse,
         recipient.arbeitgeberPlz,
         recipient.arbeitgeberOrt
