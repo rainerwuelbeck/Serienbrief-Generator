@@ -150,6 +150,24 @@ export default function StepLetterhead({ state, update }: StepProps) {
         <p className="mb-2 text-xs text-slate-500">
           Kleine Zeile über dem Adressfeld, z.B. für die Fensterlasche des Umschlags. Optional.
         </p>
+
+        <label className="mb-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+          <input
+            type="checkbox"
+            checked={state.absenderAusCsv}
+            onChange={(e) => update({ absenderAusCsv: e.target.checked })}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="font-medium">Absender aus dCRYPT-CSV übernehmen</span>
+            <span className="block text-xs text-slate-500">
+              Straße, PLZ und Ort der Absenderzeile werden dann je Empfänger aus der Adressliste
+              gelesen (z.B. bei mehreren Arbeitgeber-Standorten in einer Liste) - die Spalten dafür
+              ordnest du in Schritt 4 zu. Der Unternehmensname unten bleibt für alle gleich.
+            </span>
+          </span>
+        </label>
+
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <label className="mb-1 block text-xs font-medium text-slate-600">Unternehmensname</label>
@@ -161,48 +179,59 @@ export default function StepLetterhead({ state, update }: StepProps) {
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
           </div>
-          <div className="col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Straße und Hausnummer</label>
-            <input
-              type="text"
-              value={state.absenderStrasse}
-              onChange={(e) => update({ absenderStrasse: e.target.value })}
-              placeholder="Musterstraße 1"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">PLZ</label>
-            <input
-              type="text"
-              value={state.absenderPlz}
-              onChange={(e) => update({ absenderPlz: e.target.value })}
-              placeholder="12345"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Ort</label>
-            <input
-              type="text"
-              value={state.absenderOrt}
-              onChange={(e) => update({ absenderOrt: e.target.value })}
-              placeholder="Musterstadt"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
+          {!state.absenderAusCsv && (
+            <>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-slate-600">Straße und Hausnummer</label>
+                <input
+                  type="text"
+                  value={state.absenderStrasse}
+                  onChange={(e) => update({ absenderStrasse: e.target.value })}
+                  placeholder="Musterstraße 1"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">PLZ</label>
+                <input
+                  type="text"
+                  value={state.absenderPlz}
+                  onChange={(e) => update({ absenderPlz: e.target.value })}
+                  placeholder="12345"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Ort</label>
+                <input
+                  type="text"
+                  value={state.absenderOrt}
+                  onChange={(e) => update({ absenderOrt: e.target.value })}
+                  placeholder="Musterstadt"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+            </>
+          )}
         </div>
-        <p className="mt-2 text-xs text-slate-500">
-          Vorschau:{" "}
-          <span className="font-medium text-slate-700">
-            {buildAbsenderzeile(
-              state.absenderUnternehmensname,
-              state.absenderStrasse,
-              state.absenderPlz,
-              state.absenderOrt
-            ) || "—"}
-          </span>
-        </p>
+
+        {state.absenderAusCsv ? (
+          <p className="mt-2 text-xs text-slate-500">
+            Vorschau je Empfänger erst nach Zuordnung der Arbeitgeber-Spalten in Schritt 4 möglich.
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-slate-500">
+            Vorschau:{" "}
+            <span className="font-medium text-slate-700">
+              {buildAbsenderzeile(
+                state.absenderUnternehmensname,
+                state.absenderStrasse,
+                state.absenderPlz,
+                state.absenderOrt
+              ) || "—"}
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="border-t-2 border-sky-600 pt-6">

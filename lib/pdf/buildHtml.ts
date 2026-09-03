@@ -1,4 +1,5 @@
 import type { Recipient } from "@/lib/csv/parseAddresses";
+import { buildAbsenderzeile } from "@/lib/absenderzeile";
 import { getFont } from "@/lib/fonts";
 
 export type LogoPosition = "left" | "center" | "right";
@@ -20,7 +21,8 @@ export type LetterConfig = {
   bodyHtml: string; // Seite-1-Brieftext mit Merge-Platzhaltern
   showHeadline: boolean;
   headlineText: string; // freier Text, Zeilenumbrüche werden übernommen
-  absenderzeile: string; // kleine Zeile über dem Adressblock, z.B. "Firma GmbH - Ansprechpartner - Straße - PLZ Ort"
+  absenderzeile: string; // fest eingetragene Absenderzeile (Schritt 1) - Fallback bzw. genutzt wenn absenderAusCsv=false
+  absenderAusCsv: boolean; // wenn true: Absenderzeile wird je Empfänger aus dessen Arbeitgeber-Adresse (CSV) gebaut
   unternehmensname: string; // für den {{Unternehmensname}}-Platzhalter im Brieftext
   ansprechpartnerAnrede: string; // "Herr" oder "Frau", für {{AnsprechpartnerAnrede}}
   ansprechpartnerName: string; // Vor- und Nachname des bAV-Ansprechpartners, für {{AnsprechpartnerName}}
@@ -135,8 +137,16 @@ function renderPage1(config: LetterConfig, recipient: Recipient, dateText: strin
     ansprechpartnerTelefon: config.ansprechpartnerTelefon,
     ansprechpartnerEmail: config.ansprechpartnerEmail,
   });
-  const absenderzeile = config.absenderzeile.trim()
-    ? `<div class="absenderzeile">${escapeHtml(config.absenderzeile)}</div>`
+  const absenderzeileText = config.absenderAusCsv
+    ? buildAbsenderzeile(
+        config.unternehmensname,
+        recipient.arbeitgeberStrasse,
+        recipient.arbeitgeberPlz,
+        recipient.arbeitgeberOrt
+      )
+    : config.absenderzeile;
+  const absenderzeile = absenderzeileText.trim()
+    ? `<div class="absenderzeile">${escapeHtml(absenderzeileText)}</div>`
     : "";
   const date = config.showDate ? `<div class="page1-date">${escapeHtml(dateText)}</div>` : "";
   return `

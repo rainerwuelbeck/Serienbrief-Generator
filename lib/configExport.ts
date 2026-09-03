@@ -31,6 +31,7 @@ type ExportedConfig = {
   absenderStrasse: string;
   absenderPlz: string;
   absenderOrt: string;
+  absenderAusCsv: boolean;
 
   bodyHtml: string;
   showHeadline: boolean;
@@ -90,6 +91,7 @@ export async function buildConfigExport(state: WizardState): Promise<string> {
     absenderStrasse: state.absenderStrasse,
     absenderPlz: state.absenderPlz,
     absenderOrt: state.absenderOrt,
+    absenderAusCsv: state.absenderAusCsv,
 
     bodyHtml: state.bodyHtml,
     showHeadline: state.showHeadline,
@@ -149,6 +151,7 @@ export function parseConfigImport(jsonText: string): Partial<WizardState> {
     absenderStrasse: config.absenderStrasse,
     absenderPlz: config.absenderPlz,
     absenderOrt: config.absenderOrt,
+    absenderAusCsv: config.absenderAusCsv ?? false,
 
     bodyHtml: config.bodyHtml,
     showHeadline: config.showHeadline,

@@ -35,6 +35,7 @@ function buildFormData(state: WizardState): FormData {
   fd.set("absenderStrasse", state.absenderStrasse);
   fd.set("absenderPlz", state.absenderPlz);
   fd.set("absenderOrt", state.absenderOrt);
+  fd.set("absenderAusCsv", String(state.absenderAusCsv));
   fd.set("bodyHtml", state.bodyHtml);
   fd.set("showHeadline", String(state.showHeadline));
   fd.set("headlineText", state.headlineText);
@@ -150,7 +151,9 @@ export default function Wizard() {
       return "Bitte eine Adressliste hochladen (Schritt 4).";
     }
     try {
-      applyMapping(state.csvRows, state.mapping, state.anredezeileConfig);
+      applyMapping(state.csvRows, state.mapping, state.anredezeileConfig, {
+        requireEmployerFields: state.absenderAusCsv,
+      });
     } catch (e) {
       setStep(4);
       return e instanceof Error ? e.message : "Spalten-Zuordnung unvollständig (Schritt 4).";

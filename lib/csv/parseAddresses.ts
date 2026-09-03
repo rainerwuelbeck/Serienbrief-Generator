@@ -41,7 +41,18 @@ export const SIMPLE_FIELDS: { key: SimpleField; label: string; hint: string }[] 
   { key: "freischaltcode", label: "Freischaltcode", hint: "persönlicher Zugangscode" },
 ];
 
-export type ColumnMapping = Partial<Record<SimpleField, string>>;
+// Arbeitgeber-Adresse je Empfänger (z.B. aus einer dCRYPT-CSV) - optional, nur
+// gebraucht wenn die Absenderzeile (Schritt 1) pro Empfänger aus der CSV
+// übernommen werden soll statt fest eingetragen zu sein.
+export type EmployerField = "arbeitgeberStrasse" | "arbeitgeberPlz" | "arbeitgeberOrt";
+
+export const EMPLOYER_FIELDS: { key: EmployerField; label: string; hint: string }[] = [
+  { key: "arbeitgeberStrasse", label: "Arbeitgeber-Straße + Hausnummer", hint: "für die Absenderzeile" },
+  { key: "arbeitgeberPlz", label: "Arbeitgeber-PLZ", hint: "für die Absenderzeile" },
+  { key: "arbeitgeberOrt", label: "Arbeitgeber-Ort", hint: "für die Absenderzeile" },
+];
+
+export type ColumnMapping = Partial<Record<SimpleField | EmployerField, string>>;
 
 // Briefanredezeile: entweder aus einer eigenen CSV-Spalte, oder automatisch aus
 // Vorname/Nachname nach einer der 4 festen Vorlagen erzeugt.
@@ -69,6 +80,10 @@ export type AnredezeileConfig =
 
 export type Recipient = Record<SimpleField, string> & {
   anredezeile: string;
+  /** Arbeitgeber-Adresse, leer wenn nicht gemappt (siehe EMPLOYER_FIELDS) */
+  arbeitgeberStrasse: string;
+  arbeitgeberPlz: string;
+  arbeitgeberOrt: string;
   /** komplette Rohzeile, falls weitere Spalten für spätere Erweiterungen gebraucht werden */
   raw: Record<string, string>;
 };
@@ -126,26 +141,29 @@ function normalizeHeader(s: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-/** Versucht Spaltennamen automatisch den einfachen Feldern zuzuordnen (Best-Effort, editierbar in der UI). */
+/** Versucht Spaltennamen automatisch den einfachen (+ Arbeitgeber-)Feldern zuzuordnen (Best-Effort, editierbar in der UI). */
 export function guessMapping(headers: string[]): ColumnMapping {
-  const table: Record<SimpleField, string[]> = {
+  const table: Record<SimpleField | EmployerField, string[]> = {
     vorname: ["vorname", "firstname", "givenname"],
     nachname: ["nachname", "name", "lastname", "surname", "familyname"],
     strasse: ["strasse", "strassehausnummer", "street", "adresse1"],
     plz: ["plz", "postleitzahl", "zip", "zipcode", "postcode"],
     ort: ["ort", "stadt", "city", "town"],
     freischaltcode: ["freischaltcode", "code", "zugangscode", "aktivierungscode"],
+    arbeitgeberStrasse: ["arbeitgeberstrasse"],
+    arbeitgeberPlz: ["arbeitgeberplz"],
+    arbeitgeberOrt: ["arbeitgeberort"],
   };
   // Spaltennamen, die exakt den eigenen Feld-Labels entsprechen (z.B. "Straße + Hausnummer"),
   // sollen immer automatisch erkannt werden - unabhängig von der festen Kandidatenliste oben.
   const labelByField = Object.fromEntries(
-    SIMPLE_FIELDS.map((f) => [f.key, normalizeHeader(f.label)])
-  ) as Record<SimpleField, string>;
+    [...SIMPLE_FIELDS, ...EMPLOYER_FIELDS].map((f) => [f.key, normalizeHeader(f.label)])
+  ) as Record<SimpleField | EmployerField, string>;
 
   const mapping: ColumnMapping = {};
   for (const header of headers) {
     const n = normalizeHeader(header);
-    for (const [field, candidates] of Object.entries(table) as [SimpleField, string[]][]) {
+    for (const [field, candidates] of Object.entries(table) as [SimpleField | EmployerField, string[]][]) {
       if (mapping[field]) continue;
       if (candidates.includes(n) || n === labelByField[field]) mapping[field] = header;
     }
@@ -162,13 +180,24 @@ export function guessAnredezeileColumn(headers: string[]): string | undefined {
 export function applyMapping(
   rows: Record<string, string>[],
   mapping: ColumnMapping,
-  anredezeileConfig: AnredezeileConfig
+  anredezeileConfig: AnredezeileConfig,
+  options?: { requireEmployerFields?: boolean }
 ): Recipient[] {
   const missing = SIMPLE_FIELDS.filter((f) => !mapping[f.key]);
   if (missing.length) {
     throw new Error(
       `Bitte alle Felder zuordnen. Es fehlt: ${missing.map((m) => m.label).join(", ")}`
     );
+  }
+  if (options?.requireEmployerFields) {
+    const missingEmployer = EMPLOYER_FIELDS.filter((f) => !mapping[f.key]);
+    if (missingEmployer.length) {
+      throw new Error(
+        `Für "Absender aus CSV übernehmen" bitte auch diese Felder zuordnen: ${missingEmployer
+          .map((m) => m.label)
+          .join(", ")}`
+      );
+    }
   }
   if (anredezeileConfig.mode === "column" && !anredezeileConfig.column) {
     throw new Error("Bitte eine Spalte für die Briefanredezeile wählen (oder auf „Automatisch generieren“ umstellen).");
@@ -179,6 +208,10 @@ export function applyMapping(
     for (const field of SIMPLE_FIELDS) {
       const header = mapping[field.key]!;
       rec[field.key] = (row[header] ?? "").trim();
+    }
+    for (const field of EMPLOYER_FIELDS) {
+      const header = mapping[field.key];
+      rec[field.key] = header ? (row[header] ?? "").trim() : "";
     }
     rec.anredezeile =
       anredezeileConfig.mode === "auto"

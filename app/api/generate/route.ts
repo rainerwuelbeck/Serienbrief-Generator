@@ -144,6 +144,7 @@ export async function POST(req: Request) {
   const absenderStrasse = String(form.get("absenderStrasse") ?? "");
   const absenderPlz = String(form.get("absenderPlz") ?? "");
   const absenderOrt = String(form.get("absenderOrt") ?? "");
+  const absenderAusCsv = form.get("absenderAusCsv") === "true";
   const absenderzeile = buildAbsenderzeile(absenderUnternehmensname, absenderStrasse, absenderPlz, absenderOrt);
   const showDate = form.get("showDate") === "true";
   const dateMonthOffsetRaw = Number(form.get("dateMonthOffset") ?? 0);
@@ -200,7 +201,7 @@ export async function POST(req: Request) {
   try {
     const csvText = decodeCsvBytes(new Uint8Array(await csvFile.arrayBuffer()));
     const { rows } = parseCsv(csvText);
-    recipients = applyMapping(rows, mapping, anredezeileConfig);
+    recipients = applyMapping(rows, mapping, anredezeileConfig, { requireEmployerFields: absenderAusCsv });
   } catch (e) {
     return err(e instanceof Error ? e.message : "CSV konnte nicht verarbeitet werden.");
   }
@@ -233,6 +234,7 @@ export async function POST(req: Request) {
       showHeadline,
       headlineText,
       absenderzeile,
+      absenderAusCsv,
       unternehmensname: absenderUnternehmensname,
       ansprechpartnerAnrede,
       ansprechpartnerName,

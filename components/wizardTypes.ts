@@ -19,6 +19,10 @@ export type WizardState = {
   absenderStrasse: string;
   absenderPlz: string;
   absenderOrt: string;
+  /** Wenn true: Straße/PLZ/Ort der Absenderzeile kommen je Empfänger aus der
+   * CSV (Arbeitgeber-Adresse, siehe EMPLOYER_FIELDS) statt aus den Feldern
+   * oben - für Kampagnen mit mehreren Arbeitgeber-Standorten in einer Liste. */
+  absenderAusCsv: boolean;
 
   // Schritt 2: Anschreibentext — entweder unverändert aus einer Vorlage (b)
   // oder frei bearbeitet/individuell (c); technisch dasselbe Feld, die
@@ -63,6 +67,7 @@ export const initialWizardState: WizardState = {
   absenderStrasse: "",
   absenderPlz: "",
   absenderOrt: "",
+  absenderAusCsv: false,
 
   bodyHtml: initialStandardText.bodyHtml,
   showHeadline: initialStandardText.defaultHeadline !== "",
